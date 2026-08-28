@@ -8,11 +8,14 @@ const STORAGE_KEY_ITEMS = 'life_dashboard_items_v2';
 const STORAGE_KEY_URL = 'life_dashboard_script_url';
 const STORAGE_KEY_CLIENT_ID = 'google_calendar_client_id';
 
-// Default Google Apps Script URL (Embedded User's New Spreadsheet Web App)
+// Default Google Apps Script URL & Google Calendar Client ID
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzA5TKY3pMGv7wjRW6sSopFDXOjEON731j3D25WJzrVwt1ax7P361FqqO2JrYz7mSoTRA/exec';
+const DEFAULT_CLIENT_ID = '1078530860351-oh3i9sj5om2a7ka3fi4j2mlebmik76ho.apps.googleusercontent.com';
+
 let googleScriptUrl = DEFAULT_SCRIPT_URL;
-let googleClientId = localStorage.getItem(STORAGE_KEY_CLIENT_ID) || '';
+let googleClientId = localStorage.getItem(STORAGE_KEY_CLIENT_ID) || DEFAULT_CLIENT_ID;
 localStorage.setItem(STORAGE_KEY_URL, DEFAULT_SCRIPT_URL);
+localStorage.setItem(STORAGE_KEY_CLIENT_ID, googleClientId);
 
 // App State
 let appData = {
