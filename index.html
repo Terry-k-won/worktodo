@@ -61,10 +61,44 @@
       <button class="nav-tab" data-target="weakness">
         <i class="ri-shield-flash-line"></i> 나의 부족함
       </button>
+      <button class="nav-tab" data-target="calendar">
+        <i class="ri-calendar-event-line"></i> 📅 캘린더 관리
+      </button>
     </nav>
 
     <!-- Main Content Area -->
     <main class="dashboard-wrapper mode-all" id="dashboard-wrapper">
+      
+      <!-- Interactive Calendar Section (Large View) -->
+      <section class="calendar-wrapper-card" id="calendar-container" style="display: none;">
+        <div class="calendar-header-bar">
+          <div class="calendar-month-controls">
+            <button class="calendar-nav-btn" id="cal-btn-prev" title="이전 달"><i class="ri-arrow-left-s-line"></i></button>
+            <h2 id="cal-month-year-title">2026년 8월</h2>
+            <button class="calendar-nav-btn" id="cal-btn-next" title="다음 달"><i class="ri-arrow-right-s-line"></i></button>
+            <button class="calendar-nav-btn today-btn" id="cal-btn-today">오늘</button>
+          </div>
+          <div class="calendar-legend">
+            <span class="legend-item today-badge"><i class="ri-sun-fill"></i> 오늘 할 일</span>
+            <span class="legend-item urgent-badge"><i class="ri-fire-fill"></i> 쌓여있는 과제</span>
+            <span class="legend-item longterm-badge"><i class="ri-flag-fill"></i> 장기 목표</span>
+          </div>
+        </div>
+
+        <div class="calendar-grid-header">
+          <div class="cal-day-header sun">일</div>
+          <div class="cal-day-header">월</div>
+          <div class="cal-day-header">화</div>
+          <div class="cal-day-header">수</div>
+          <div class="cal-day-header">목</div>
+          <div class="cal-day-header">금</div>
+          <div class="cal-day-header sat">토</div>
+        </div>
+        <div class="calendar-days-body" id="cal-days-body">
+          <!-- Calendar Days & Tasks Rendered by JS -->
+        </div>
+      </section>
+
       <div class="main-cards-container" id="main-cards-container">
         
         <!-- 1. 오늘 할 일 -->
@@ -313,6 +347,12 @@
           <label for="apps-script-url">Google Apps Script Web App URL</label>
           <input type="url" id="apps-script-url" placeholder="https://script.google.com/macros/s/.../exec" class="form-control" />
           <small class="help-text">URL이 없어도 로컬(브라우저 LocalStorage)에 안전하게 데이터가 저장됩니다.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="google-client-id"><i class="ri-calendar-line"></i> Google Calendar OAuth Client ID (선택)</label>
+          <input type="text" id="google-client-id" placeholder="xxxxxx-xxxxxx.apps.googleusercontent.com" class="form-control" />
+          <small class="help-text">Google Cloud 콘솔에서 발급받은 웹 클라이언트 ID를 입력하여 구글 캘린더 연동을 완성하세요.</small>
         </div>
 
         <div class="settings-actions">

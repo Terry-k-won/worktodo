@@ -6,10 +6,12 @@
 // Global Configuration & Constants
 const STORAGE_KEY_ITEMS = 'life_dashboard_items_v2';
 const STORAGE_KEY_URL = 'life_dashboard_script_url';
+const STORAGE_KEY_CLIENT_ID = 'google_calendar_client_id';
 
 // Default Google Apps Script URL (Embedded User's New Spreadsheet Web App)
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzA5TKY3pMGv7wjRW6sSopFDXOjEON731j3D25WJzrVwt1ax7P361FqqO2JrYz7mSoTRA/exec';
 let googleScriptUrl = DEFAULT_SCRIPT_URL;
+let googleClientId = localStorage.getItem(STORAGE_KEY_CLIENT_ID) || '';
 localStorage.setItem(STORAGE_KEY_URL, DEFAULT_SCRIPT_URL);
 
 // App State
@@ -19,6 +21,10 @@ let appData = {
 
 let currentFilter = 'all';
 let currentArchiveTab = 'completed'; // 'completed' or 'deleted'
+
+// Calendar View State
+let currentCalYear = new Date().getFullYear();
+let currentCalMonth = new Date().getMonth(); // 0-indexed (0=Jan..11=Dec)
 
 // Category Name Mapping
 const CATEGORY_NAMES = {
@@ -139,6 +145,14 @@ function setupEventListeners() {
   document.getElementById('btn-close-settings-modal').addEventListener('click', closeSettingsModal);
   document.getElementById('btn-cancel-settings').addEventListener('click', closeSettingsModal);
 
+  // Calendar Controls Event Listeners
+  const prevBtn = document.getElementById('cal-btn-prev');
+  const nextBtn = document.getElementById('cal-btn-next');
+  const todayBtn = document.getElementById('cal-btn-today');
+  if (prevBtn) prevBtn.addEventListener('click', () => changeCalMonth(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => changeCalMonth(1));
+  if (todayBtn) todayBtn.addEventListener('click', goCalToday);
+
   // Auto-fill today's date when 'today' category is selected in modal
   document.getElementById('item-category').addEventListener('change', (e) => {
     if (e.target.value === 'today') {
@@ -255,6 +269,9 @@ function filterDashboardView(target) {
   currentFilter = target;
   const wrapper = document.getElementById('dashboard-wrapper');
   const cards = document.querySelectorAll('.category-card');
+  const calContainer = document.getElementById('calendar-container');
+  const mainCardsContainer = document.getElementById('main-cards-container');
+  const categorySidebar = document.getElementById('category-sidebar');
 
   // Update top navigation active class
   document.querySelectorAll('.category-nav .nav-tab').forEach(tab => {
@@ -262,27 +279,132 @@ function filterDashboardView(target) {
     tab.classList.toggle('active', t === target);
   });
 
-  if (target === 'all') {
-    wrapper.className = 'dashboard-wrapper mode-all';
-    cards.forEach(card => {
-      card.classList.remove('focused');
-      card.style.display = 'flex';
-    });
+  if (target === 'calendar') {
+    if (calContainer) calContainer.style.display = 'flex';
+    if (mainCardsContainer) mainCardsContainer.style.display = 'none';
+    if (categorySidebar) categorySidebar.style.display = 'none';
+    renderCalendar();
   } else {
-    wrapper.className = 'dashboard-wrapper mode-focused';
-    cards.forEach(card => {
-      const cat = card.getAttribute('data-category');
-      if (cat === target) {
-        card.classList.add('focused');
-        card.style.display = 'flex';
-      } else {
+    if (calContainer) calContainer.style.display = 'none';
+    if (mainCardsContainer) mainCardsContainer.style.display = (target === 'all') ? 'grid' : 'flex';
+    
+    if (target === 'all') {
+      wrapper.className = 'dashboard-wrapper mode-all';
+      if (categorySidebar) categorySidebar.style.display = 'none';
+      cards.forEach(card => {
         card.classList.remove('focused');
-        card.style.display = 'none';
-      }
-    });
+        card.style.display = 'flex';
+      });
+    } else {
+      wrapper.className = 'dashboard-wrapper mode-focused';
+      if (categorySidebar) categorySidebar.style.display = 'flex';
+      cards.forEach(card => {
+        const cat = card.getAttribute('data-category');
+        if (cat === target) {
+          card.classList.add('focused');
+          card.style.display = 'flex';
+        } else {
+          card.classList.remove('focused');
+          card.style.display = 'none';
+        }
+      });
+    }
   }
 
   renderRightSidebar();
+}
+
+/* ==========================================================================
+   Calendar View Rendering & Controls
+   ========================================================================== */
+
+function renderCalendar() {
+  const calContainer = document.getElementById('calendar-container');
+  if (!calContainer || calContainer.style.display === 'none') return;
+
+  const titleEl = document.getElementById('cal-month-year-title');
+  const daysBodyEl = document.getElementById('cal-days-body');
+  if (!titleEl || !daysBodyEl) return;
+
+  // Set Month Title
+  titleEl.textContent = `${currentCalYear}년 ${currentCalMonth + 1}월`;
+
+  daysBodyEl.innerHTML = '';
+
+  const firstDayIndex = new Date(currentCalYear, currentCalMonth, 1).getDay(); // 0 = Sun
+  const lastDate = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+  const prevLastDate = new Date(currentCalYear, currentCalMonth, 0).getDate();
+
+  const todayStr = getTodayDateString();
+
+  // 1. Previous Month Days Padding
+  for (let x = firstDayIndex; x > 0; x--) {
+    const prevDate = prevLastDate - x + 1;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day-cell other-month';
+    cell.innerHTML = `<span class="cal-day-num">${prevDate}</span>`;
+    daysBodyEl.appendChild(cell);
+  }
+
+  // 2. Current Month Days
+  for (let i = 1; i <= lastDate; i++) {
+    const cellDateStr = `${currentCalYear}-${String(currentCalMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    const isToday = (cellDateStr === todayStr);
+
+    const cell = document.createElement('div');
+    cell.className = `cal-day-cell ${isToday ? 'is-today' : ''}`;
+    cell.onclick = () => openAddModal('today', cellDateStr);
+
+    let cellHtml = `<span class="cal-day-num">${i}</span>`;
+
+    // Filter active items due on this date
+    const dayItems = appData.items.filter(item => {
+      if (item.status !== 'active' || !item.dueDate) return false;
+      return String(item.dueDate).trim().startsWith(cellDateStr);
+    });
+
+    dayItems.forEach(item => {
+      const catClass = item.category || 'today';
+      const meta = CATEGORY_META[catClass] || { name: '할일' };
+      cellHtml += `
+        <div class="cal-task-pill ${catClass}" title="${escapeHtml(item.content)} (${meta.name})" onclick="event.stopPropagation(); openEditModal('${item.id}')">
+          <span>${escapeHtml(item.content)}</span>
+        </div>
+      `;
+    });
+
+    cell.innerHTML = cellHtml;
+    daysBodyEl.appendChild(cell);
+  }
+
+  // 3. Next Month Days Padding to complete grid rows
+  const totalCells = firstDayIndex + lastDate;
+  const remainingCells = (7 - (totalCells % 7)) % 7;
+  for (let j = 1; j <= remainingCells; j++) {
+    const cell = document.createElement('div');
+    cell.className = 'cal-day-cell other-month';
+    cell.innerHTML = `<span class="cal-day-num">${j}</span>`;
+    daysBodyEl.appendChild(cell);
+  }
+}
+
+function changeCalMonth(offset) {
+  currentCalMonth += offset;
+  if (currentCalMonth > 11) {
+    currentCalMonth = 0;
+    currentCalYear += 1;
+  } else if (currentCalMonth < 0) {
+    currentCalMonth = 11;
+    currentCalYear -= 1;
+  }
+  renderCalendar();
+}
+
+function goCalToday() {
+  const now = new Date();
+  currentCalYear = now.getFullYear();
+  currentCalMonth = now.getMonth();
+  renderCalendar();
 }
 
 function switchCategoryView(target) {
@@ -576,15 +698,16 @@ function getTodayDateString() {
    Modal Dialog Controllers
    ========================================================================== */
 
-function openAddModal(category = 'today') {
+function openAddModal(category = 'today', prefillDate = null) {
   document.getElementById('modal-item-title').textContent = '새 항목 추가';
   document.getElementById('item-id').value = '';
   document.getElementById('item-category').value = category;
   document.getElementById('item-content').value = '';
   document.getElementById('item-priority').value = 'medium';
   
-  // Default date to today if category is 'today'
-  if (category === 'today') {
+  if (prefillDate) {
+    document.getElementById('item-duedate').value = prefillDate;
+  } else if (category === 'today') {
     document.getElementById('item-duedate').value = getTodayDateString();
   } else {
     document.getElementById('item-duedate').value = '';
@@ -633,6 +756,8 @@ function switchArchiveTab(tab) {
 
 function openSettingsModal() {
   document.getElementById('apps-script-url').value = googleScriptUrl;
+  const clientIdInput = document.getElementById('google-client-id');
+  if (clientIdInput) clientIdInput.value = googleClientId;
   document.getElementById('modal-settings').classList.add('active');
 }
 
@@ -644,6 +769,12 @@ function saveSettings() {
   const url = document.getElementById('apps-script-url').value.trim();
   googleScriptUrl = url;
   localStorage.setItem(STORAGE_KEY_URL, url);
+
+  const clientIdInput = document.getElementById('google-client-id');
+  if (clientIdInput) {
+    googleClientId = clientIdInput.value.trim();
+    localStorage.setItem(STORAGE_KEY_CLIENT_ID, googleClientId);
+  }
 
   showToast('설정이 저장되었습니다.', 'success');
   closeSettingsModal();
