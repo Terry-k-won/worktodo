@@ -23,6 +23,7 @@ let appData = {
 };
 
 let currentFilter = 'all';
+let isCalendarView = false;  // Separate flag to track calendar view state
 let currentArchiveTab = 'completed'; // 'completed' or 'deleted'
 
 // Calendar View State
@@ -114,11 +115,12 @@ function getInitialDemoData() {
    ========================================================================== */
 
 function setupEventListeners() {
-  // Navigation Filter Tabs — call filterDashboardView only once
+  // Navigation Filter Tabs (only non-calendar tabs - calendar has its own onclick)
   document.querySelectorAll('.category-nav .nav-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
       const target = e.currentTarget.getAttribute('data-target');
-      filterDashboardView(target);
+      if (target === 'calendar') return; // handled by onclick on the button
+      showDashboardView(target);
     });
   });
 
@@ -195,12 +197,42 @@ function renderAll() {
   renderArchiveList();
   updateBadgesAndCounts();
   renderRightSidebar();
-  // Re-apply current view without resetting the calendar display
-  if (currentFilter !== 'calendar') {
-    filterDashboardView(currentFilter);
+  if (isCalendarView) {
+    renderCalendar(); // Just refresh calendar data, don't touch display
   } else {
-    renderCalendar();
+    filterDashboardView(currentFilter);
   }
+}
+
+// ---- Dedicated Calendar Show/Hide ----
+function showCalendarView(btnEl) {
+  isCalendarView = true;
+  currentFilter = 'calendar';
+
+  // Update nav active state
+  document.querySelectorAll('.category-nav .nav-tab').forEach(t => t.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+
+  // Show calendar, hide dashboard
+  const cal = document.getElementById('calendar-container');
+  const dash = document.getElementById('dashboard-wrapper');
+  if (cal) { cal.style.display = 'flex'; cal.style.flexDirection = 'column'; }
+  if (dash) dash.style.display = 'none';
+
+  renderCalendar();
+}
+
+function showDashboardView(target) {
+  isCalendarView = false;
+  currentFilter = target;
+
+  // Hide calendar, show dashboard
+  const cal = document.getElementById('calendar-container');
+  const dash = document.getElementById('dashboard-wrapper');
+  if (cal) cal.style.display = 'none';
+  if (dash) dash.style.display = '';
+
+  filterDashboardView(target);
 }
 
 function renderCategoryLists() {
@@ -273,6 +305,7 @@ function renderRightSidebar() {
 
 function filterDashboardView(target) {
   currentFilter = target;
+  isCalendarView = false;
 
   const wrapper = document.getElementById('dashboard-wrapper');
   const calContainer = document.getElementById('calendar-container');
@@ -280,22 +313,14 @@ function filterDashboardView(target) {
   const categorySidebar = document.getElementById('category-sidebar');
   const cards = document.querySelectorAll('.category-card');
 
+  // Hide calendar, show dashboard wrapper
+  if (calContainer) calContainer.style.display = 'none';
+  if (wrapper) wrapper.style.display = '';
+
   // Update nav tab active state
   document.querySelectorAll('.category-nav .nav-tab').forEach(tab => {
     tab.classList.toggle('active', tab.getAttribute('data-target') === target);
   });
-
-  if (target === 'calendar') {
-    // Show calendar, hide the rest
-    if (calContainer) { calContainer.style.display = 'flex'; calContainer.style.flexDirection = 'column'; }
-    if (wrapper) wrapper.style.display = 'none';
-    renderCalendar();
-    return;
-  }
-
-  // Non-calendar views: show wrapper, hide calendar
-  if (calContainer) calContainer.style.display = 'none';
-  if (wrapper) { wrapper.style.display = ''; wrapper.style.removeProperty && wrapper.style.removeProperty('display'); }
 
   if (target === 'all') {
     wrapper.className = 'dashboard-wrapper mode-all';
