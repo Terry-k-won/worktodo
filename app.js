@@ -74,60 +74,124 @@ function saveData() {
   }
 }
 
+function getPriorityValue(prio) {
+  if (!prio) return 2;
+  const p = String(prio).toLowerCase().trim();
+  if (p === 'high' || p === '높음' || p.includes('높음') || p === '1') return 1;
+  if (p === 'medium' || p === '보통' || p.includes('보통') || p === '2') return 2;
+  if (p === 'low' || p === '낮음' || p.includes('낮음') || p === '3') return 3;
+  return 2;
+}
+
 function getInitialDemoData() {
   const now = new Date().toISOString();
+  const todayStr = new Date().toISOString().split('T')[0];
+
   return [
+    // 1. 오늘 할 일 (Today)
     {
-      id: 'demo_1',
+      id: 'demo_today_1',
       category: 'today',
-      content: '오늘 할 일 정리 및 우선순위 설정하기',
+      content: '🔥 긴급 업무 서류 검토 및 최종 제출',
       priority: 'high',
-      dueDate: new Date().toISOString().split('T')[0],
-      note: '중요한 과제부터 차근차근 진행하기',
+      dueDate: todayStr,
+      note: '우선순위 높음 (최상단 노출)',
       status: 'active',
       createdAt: now,
       updatedAt: now
     },
     {
-      id: 'demo_2',
+      id: 'demo_today_2',
+      category: 'today',
+      content: '⚡ 주간 프로젝트 일정 팀원 공유',
+      priority: 'medium',
+      dueDate: todayStr,
+      note: '우선순위 보통',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: 'demo_today_3',
+      category: 'today',
+      content: '🌱 책상 정돈 및 데스크탑 파일 정리',
+      priority: 'low',
+      dueDate: todayStr,
+      note: '우선순위 낮음',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+
+    // 2. 당장 내게 쌓여있는 과제 (Urgent)
+    {
+      id: 'demo_urgent_1',
       category: 'urgent',
-      content: '스프레드시트 DB 연동 및 배포 테스트',
+      content: '🔥 구글 앱스 스크립트 DB 연동 및 배포 테스트',
       priority: 'high',
       dueDate: '',
-      note: '구글 앱스 스크립트 웹 앱 URL 연동하기',
+      note: '시급한 핵심 개발 과제',
       status: 'active',
       createdAt: now,
       updatedAt: now
     },
     {
-      id: 'demo_3',
+      id: 'demo_urgent_2',
+      category: 'urgent',
+      content: '⚡ 모바일 웹 UI 반응형 레이아웃 점검',
+      priority: 'medium',
+      dueDate: '',
+      note: '우선순위 보통',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+
+    // 3. 장기 목표 (Longterm)
+    {
+      id: 'demo_long_1',
       category: 'longterm',
-      content: '매일 성장을 기록하는 루틴 완성하기',
-      priority: 'medium',
+      content: '🔥 매일 1시간 개인 역량 강화 공부 습관화',
+      priority: 'high',
       dueDate: '',
-      note: '주간/월간 단위 회고 진행',
+      note: '장기 성장 핵심 목표',
       status: 'active',
       createdAt: now,
       updatedAt: now
     },
     {
-      id: 'demo_4',
-      category: 'skills',
-      content: '모바일 반응형 웹 UI & UX 디자인 감각 키우기',
-      priority: 'medium',
-      dueDate: '',
-      note: '트렌디한 웹 애플리케이션 디자인 분석',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'demo_5',
-      category: 'weakness',
-      content: '미루는 습관 줄이고 피드백 빠르게 수용하기',
+      id: 'demo_long_2',
+      category: 'longterm',
+      content: '🌱 블로그 기술 포스팅 월 2회 작성',
       priority: 'low',
       dueDate: '',
-      note: '체크리스트 기반으로 실시간 실행',
+      note: '우선순위 낮음',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+
+    // 4. 개발할 능력 (Skills)
+    {
+      id: 'demo_skills_1',
+      category: 'skills',
+      content: '🔥 모바일 프론트엔드 UI & UX 디자인 능력',
+      priority: 'high',
+      dueDate: '',
+      note: '핵심 역량',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now
+    },
+
+    // 5. 나의 부족함 (Weakness)
+    {
+      id: 'demo_weak_1',
+      category: 'weakness',
+      content: '🔥 미루는 습관 줄이고 실시간 피드백 반영하기',
+      priority: 'high',
+      dueDate: '',
+      note: '최우선 개선 과제',
       status: 'active',
       createdAt: now,
       updatedAt: now
@@ -225,13 +289,13 @@ function renderCategoryLists() {
     const listEl = document.getElementById(`list-${cat}`);
     const emptyEl = document.getElementById(`empty-${cat}`);
     
-    // Filter active items for this category & SORT BY PRIORITY (High -> Medium -> Low)
+    // Filter active items for this category & SORT BY PRIORITY (High=1 -> Medium=2 -> Low=3)
     const items = appData.items
       .filter(item => item.category === cat && item.status === 'active')
       .sort((a, b) => {
-        const prioA = PRIORITY_ORDER[a.priority] || 2;
-        const prioB = PRIORITY_ORDER[b.priority] || 2;
-        if (prioA !== prioB) return prioA - prioB; // High priority first
+        const prioA = getPriorityValue(a.priority);
+        const prioB = getPriorityValue(b.priority);
+        if (prioA !== prioB) return prioA - prioB; // 1 (High) comes before 2 (Medium) comes before 3 (Low)
         
         // Secondary sort: Due Date (Earliest first)
         if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
@@ -330,8 +394,9 @@ function createCategoryItemElement(item) {
   li.className = 'task-item';
   li.id = `item-element-${item.id}`;
 
-  const priorityLabel = { high: '🔥 높음', medium: '⚡ 보통', low: '🌱 낮음' }[item.priority] || '보통';
-  const priorityClass = `prio-${item.priority || 'medium'}`;
+  const priorityVal = getPriorityValue(item.priority);
+  const priorityLabel = { 1: '🔥 높음', 2: '⚡ 보통', 3: '🌱 낮음' }[priorityVal] || '⚡ 보통';
+  const priorityClass = { 1: 'prio-high', 2: 'prio-medium', 3: 'prio-low' }[priorityVal] || 'prio-medium';
 
   const dueDateHtml = item.dueDate 
     ? `<span class="due-date"><i class="ri-calendar-line"></i> ${item.dueDate}</span>` 

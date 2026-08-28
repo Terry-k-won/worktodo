@@ -323,30 +323,35 @@ body {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px; /* Distinct vertical gap between tab cards */
+  padding: 4px 0;
 }
 
 .sidebar-tab-item {
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.6);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
+  padding: 14px 16px;
+  margin-bottom: 2px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: var(--transition-fast);
 }
 
 .sidebar-tab-item:hover {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: rgba(255, 255, 255, 0.16);
-  transform: translateX(3px);
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .sidebar-tab-item.active {
   border-color: var(--primary);
   background: var(--primary-light);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
 }
 
 .sidebar-tab-title {
