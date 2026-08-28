@@ -174,6 +174,16 @@ function setupEventListeners() {
   document.getElementById('btn-close-settings-modal').addEventListener('click', closeSettingsModal);
   document.getElementById('btn-cancel-settings').addEventListener('click', closeSettingsModal);
 
+  // Auto-fill today's date when 'today' category is selected in modal
+  document.getElementById('item-category').addEventListener('change', (e) => {
+    if (e.target.value === 'today') {
+      const dateInput = document.getElementById('item-duedate');
+      if (!dateInput.value) {
+        dateInput.value = getTodayDateString();
+      }
+    }
+  });
+
   // Close modals on overlay click
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
@@ -184,6 +194,18 @@ function setupEventListeners() {
   });
 }
 
+// Priority Rank Mapping for Sorting
+const PRIORITY_ORDER = { high: 1, medium: 2, low: 3 };
+
+// Category Icons & Meta
+const CATEGORY_META = {
+  today: { name: '오늘 할 일', icon: 'ri-sun-fill', iconClass: 'today-icon' },
+  urgent: { name: '당장 쌓인 과제', icon: 'ri-fire-fill', iconClass: 'urgent-icon' },
+  longterm: { name: '장기 목표', icon: 'ri-flag-fill', iconClass: 'longterm-icon' },
+  skills: { name: '개발할 능력', icon: 'ri-tools-fill', iconClass: 'skills-icon' },
+  weakness: { name: '나의 부족함', icon: 'ri-shield-flash-fill', iconClass: 'weakness-icon' }
+};
+
 /* ==========================================================================
    UI Rendering
    ========================================================================== */
@@ -192,6 +214,8 @@ function renderAll() {
   renderCategoryLists();
   renderArchiveList();
   updateBadgesAndCounts();
+  renderRightSidebar();
+  filterDashboardView(currentFilter);
 }
 
 function renderCategoryLists() {
@@ -201,9 +225,23 @@ function renderCategoryLists() {
     const listEl = document.getElementById(`list-${cat}`);
     const emptyEl = document.getElementById(`empty-${cat}`);
     
-    // Filter active items for this category
-    const items = appData.items.filter(item => item.category === cat && item.status === 'active');
-    
+    // Filter active items for this category & SORT BY PRIORITY (High -> Medium -> Low)
+    const items = appData.items
+      .filter(item => item.category === cat && item.status === 'active')
+      .sort((a, b) => {
+        const prioA = PRIORITY_ORDER[a.priority] || 2;
+        const prioB = PRIORITY_ORDER[b.priority] || 2;
+        if (prioA !== prioB) return prioA - prioB; // High priority first
+        
+        // Secondary sort: Due Date (Earliest first)
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+
+        // Tertiary sort: Latest Created
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
     listEl.innerHTML = '';
 
     if (items.length === 0) {
@@ -216,6 +254,75 @@ function renderCategoryLists() {
       });
     }
   });
+}
+
+function renderRightSidebar() {
+  const sidebarListEl = document.getElementById('sidebar-tab-list');
+  if (!sidebarListEl) return;
+
+  const categories = ['today', 'urgent', 'longterm', 'skills', 'weakness'];
+  
+  // Render sidebar list items for categories other than 'all'
+  sidebarListEl.innerHTML = '';
+  
+  categories.forEach(cat => {
+    const meta = CATEGORY_META[cat];
+    const count = appData.items.filter(i => i.category === cat && i.status === 'active').length;
+    const isCurrent = (cat === currentFilter);
+
+    const li = document.createElement('li');
+    li.className = `sidebar-tab-item ${isCurrent ? 'active' : ''}`;
+    li.onclick = () => switchCategoryView(cat);
+
+    li.innerHTML = `
+      <div class="sidebar-tab-title">
+        <span class="category-icon ${meta.iconClass}"><i class="${meta.icon}"></i></span>
+        <span>${meta.name}</span>
+      </div>
+      <span class="item-count">${count}</span>
+    `;
+
+    sidebarListEl.appendChild(li);
+  });
+}
+
+function filterDashboardView(target) {
+  currentFilter = target;
+  const wrapper = document.getElementById('dashboard-wrapper');
+  const cards = document.querySelectorAll('.category-card');
+
+  // Update top navigation active class
+  document.querySelectorAll('.category-nav .nav-tab').forEach(tab => {
+    const t = tab.getAttribute('data-target');
+    tab.classList.toggle('active', t === target);
+  });
+
+  if (target === 'all') {
+    wrapper.className = 'dashboard-wrapper mode-all';
+    cards.forEach(card => {
+      card.classList.remove('focused');
+      card.style.display = 'flex';
+    });
+  } else {
+    wrapper.className = 'dashboard-wrapper mode-focused';
+    cards.forEach(card => {
+      const cat = card.getAttribute('data-category');
+      if (cat === target) {
+        card.classList.add('focused');
+        card.style.display = 'flex';
+      } else {
+        card.classList.remove('focused');
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  renderRightSidebar();
+}
+
+function switchCategoryView(target) {
+  filterDashboardView(target);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function createCategoryItemElement(item) {
@@ -490,6 +597,15 @@ function confirmClearArchive() {
   }
 }
 
+/* Helper: Get Today's Date String in YYYY-MM-DD */
+function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /* ==========================================================================
    Modal Dialog Controllers
    ========================================================================== */
@@ -500,7 +616,14 @@ function openAddModal(category = 'today') {
   document.getElementById('item-category').value = category;
   document.getElementById('item-content').value = '';
   document.getElementById('item-priority').value = 'medium';
-  document.getElementById('item-duedate').value = '';
+  
+  // Default date to today if category is 'today'
+  if (category === 'today') {
+    document.getElementById('item-duedate').value = getTodayDateString();
+  } else {
+    document.getElementById('item-duedate').value = '';
+  }
+
   document.getElementById('item-note').value = '';
 
   document.getElementById('modal-item').classList.add('active');

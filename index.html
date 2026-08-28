@@ -64,123 +64,135 @@
     </nav>
 
     <!-- Main Content Area -->
-    <main class="dashboard-grid" id="dashboard-grid">
-      
-      <!-- 1. 오늘 할 일 -->
-      <section class="category-card" id="card-today" data-category="today">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="category-icon today-icon"><i class="ri-sun-fill"></i></span>
-            <h2>오늘 할 일</h2>
-            <span class="item-count" id="count-today">0</span>
+    <main class="dashboard-wrapper mode-all" id="dashboard-wrapper">
+      <div class="main-cards-container" id="main-cards-container">
+        
+        <!-- 1. 오늘 할 일 -->
+        <section class="category-card" id="card-today" data-category="today">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="category-icon today-icon"><i class="ri-sun-fill"></i></span>
+              <h2>오늘 할 일</h2>
+              <span class="item-count" id="count-today">0</span>
+            </div>
+            <button class="btn-add-item" onclick="openAddModal('today')">
+              <i class="ri-add-line"></i> 추가
+            </button>
           </div>
-          <button class="btn-add-item" onclick="openAddModal('today')">
-            <i class="ri-add-line"></i> 추가
-          </button>
-        </div>
-        <div class="card-body">
-          <ul class="task-list" id="list-today">
-            <!-- items injected by JS -->
-          </ul>
-          <div class="empty-state" id="empty-today">
-            <i class="ri-check-double-line"></i>
-            <p>오늘 할 일이 없습니다!</p>
+          <div class="card-body">
+            <ul class="task-list" id="list-today">
+              <!-- items injected by JS -->
+            </ul>
+            <div class="empty-state" id="empty-today">
+              <i class="ri-check-double-line"></i>
+              <p>오늘 할 일이 없습니다!</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- 2. 당장 내게 쌓여있는 과제 -->
-      <section class="category-card" id="card-urgent" data-category="urgent">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="category-icon urgent-icon"><i class="ri-fire-fill"></i></span>
-            <h2>당장 쌓여있는 과제</h2>
-            <span class="item-count" id="count-urgent">0</span>
+        <!-- 2. 당장 내게 쌓여있는 과제 -->
+        <section class="category-card" id="card-urgent" data-category="urgent">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="category-icon urgent-icon"><i class="ri-fire-fill"></i></span>
+              <h2>당장 쌓여있는 과제</h2>
+              <span class="item-count" id="count-urgent">0</span>
+            </div>
+            <button class="btn-add-item" onclick="openAddModal('urgent')">
+              <i class="ri-add-line"></i> 추가
+            </button>
           </div>
-          <button class="btn-add-item" onclick="openAddModal('urgent')">
-            <i class="ri-add-line"></i> 추가
-          </button>
-        </div>
-        <div class="card-body">
-          <ul class="task-list" id="list-urgent">
-            <!-- items injected by JS -->
-          </ul>
-          <div class="empty-state" id="empty-urgent">
-            <i class="ri-task-line"></i>
-            <p>시급한 과제가 없습니다.</p>
+          <div class="card-body">
+            <ul class="task-list" id="list-urgent">
+              <!-- items injected by JS -->
+            </ul>
+            <div class="empty-state" id="empty-urgent">
+              <i class="ri-task-line"></i>
+              <p>시급한 과제가 없습니다.</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- 3. 앞으로 장기적으로 해야할 일 -->
-      <section class="category-card" id="card-longterm" data-category="longterm">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="category-icon longterm-icon"><i class="ri-flag-fill"></i></span>
-            <h2>장기적으로 해야할 일</h2>
-            <span class="item-count" id="count-longterm">0</span>
+        <!-- 3. 앞으로 장기적으로 해야할 일 -->
+        <section class="category-card" id="card-longterm" data-category="longterm">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="category-icon longterm-icon"><i class="ri-flag-fill"></i></span>
+              <h2>장기적으로 해야할 일</h2>
+              <span class="item-count" id="count-longterm">0</span>
+            </div>
+            <button class="btn-add-item" onclick="openAddModal('longterm')">
+              <i class="ri-add-line"></i> 추가
+            </button>
           </div>
-          <button class="btn-add-item" onclick="openAddModal('longterm')">
-            <i class="ri-add-line"></i> 추가
-          </button>
-        </div>
-        <div class="card-body">
-          <ul class="task-list" id="list-longterm">
-            <!-- items injected by JS -->
-          </ul>
-          <div class="empty-state" id="empty-longterm">
-            <i class="ri-compass-3-line"></i>
-            <p>장기 목표를 등록해보세요.</p>
+          <div class="card-body">
+            <ul class="task-list" id="list-longterm">
+              <!-- items injected by JS -->
+            </ul>
+            <div class="empty-state" id="empty-longterm">
+              <i class="ri-compass-3-line"></i>
+              <p>장기 목표를 등록해보세요.</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- 4. 내가 개발해야할 능력들 -->
-      <section class="category-card" id="card-skills" data-category="skills">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="category-icon skills-icon"><i class="ri-tools-fill"></i></span>
-            <h2>내가 개발해야할 능력들</h2>
-            <span class="item-count" id="count-skills">0</span>
+        <!-- 4. 내가 개발해야할 능력들 -->
+        <section class="category-card" id="card-skills" data-category="skills">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="category-icon skills-icon"><i class="ri-tools-fill"></i></span>
+              <h2>내가 개발해야할 능력들</h2>
+              <span class="item-count" id="count-skills">0</span>
+            </div>
+            <button class="btn-add-item" onclick="openAddModal('skills')">
+              <i class="ri-add-line"></i> 추가
+            </button>
           </div>
-          <button class="btn-add-item" onclick="openAddModal('skills')">
-            <i class="ri-add-line"></i> 추가
-          </button>
-        </div>
-        <div class="card-body">
-          <ul class="task-list" id="list-skills">
-            <!-- items injected by JS -->
-          </ul>
-          <div class="empty-state" id="empty-skills">
-            <i class="ri-lightbulb-line"></i>
-            <p>익히고 싶은 역량을 적어보세요.</p>
+          <div class="card-body">
+            <ul class="task-list" id="list-skills">
+              <!-- items injected by JS -->
+            </ul>
+            <div class="empty-state" id="empty-skills">
+              <i class="ri-lightbulb-line"></i>
+              <p>익히고 싶은 역량을 적어보세요.</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- 5. 나의 부족함 -->
-      <section class="category-card" id="card-weakness" data-category="weakness">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="category-icon weakness-icon"><i class="ri-shield-flash-fill"></i></span>
-            <h2>나의 부족함 (개선점)</h2>
-            <span class="item-count" id="count-weakness">0</span>
+        <!-- 5. 나의 부족함 -->
+        <section class="category-card" id="card-weakness" data-category="weakness">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="category-icon weakness-icon"><i class="ri-shield-flash-fill"></i></span>
+              <h2>나의 부족함 (개선점)</h2>
+              <span class="item-count" id="count-weakness">0</span>
+            </div>
+            <button class="btn-add-item" onclick="openAddModal('weakness')">
+              <i class="ri-add-line"></i> 추가
+            </button>
           </div>
-          <button class="btn-add-item" onclick="openAddModal('weakness')">
-            <i class="ri-add-line"></i> 추가
-          </button>
-        </div>
-        <div class="card-body">
-          <ul class="task-list" id="list-weakness">
-            <!-- items injected by JS -->
-          </ul>
-          <div class="empty-state" id="empty-weakness">
-            <i class="ri-heart-pulse-line"></i>
-            <p>성찰할 점을 기록해 성장의 기회로 만드세요.</p>
+          <div class="card-body">
+            <ul class="task-list" id="list-weakness">
+              <!-- items injected by JS -->
+            </ul>
+            <div class="empty-state" id="empty-weakness">
+              <i class="ri-heart-pulse-line"></i>
+              <p>성찰할 점을 기록해 성장의 기회로 만드세요.</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
+      </div>
+
+      <!-- Right Sidebar for Category Tabs (Visible when a single category tab is active) -->
+      <aside class="category-sidebar" id="category-sidebar">
+        <div class="sidebar-header">
+          <h3><i class="ri-layout-grid-line"></i> 다른 카테고리</h3>
+        </div>
+        <ul class="sidebar-tab-list" id="sidebar-tab-list">
+          <!-- Rendered dynamically by JS -->
+        </ul>
+      </aside>
     </main>
 
     <!-- Floating Action Button for Mobile Quick Add -->
