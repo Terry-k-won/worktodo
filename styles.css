@@ -85,12 +85,17 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .logo-area {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 
 .logo-icon {
@@ -103,6 +108,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .app-title {
@@ -112,6 +118,9 @@ body {
   background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app-subtitle {
@@ -123,6 +132,52 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Mobile Responsiveness for Header */
+@media (max-width: 640px) {
+  .app-container {
+    padding: 12px 10px;
+  }
+
+  .app-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.3rem;
+  }
+
+  .app-title {
+    font-size: 1.02rem;
+  }
+
+  .app-subtitle {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 4px;
+  }
+
+  .sync-badge {
+    padding: 4px 6px;
+    font-size: 0.7rem;
+  }
+
+  .sync-badge .sync-text {
+    display: none;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 1.05rem;
+  }
 }
 
 /* Sync Badge */

@@ -763,8 +763,31 @@ async function syncWithGoogleSheet(manual = false) {
 
   updateSyncBadge('syncing', '동기화 중...');
 
+  // 1. Primary Sync method: GET request with URL-encoded JSON payload
+  // This bypasses browser CORS preflight blocks completely on all mobile and web devices!
   try {
-    // 1. Post local items payload to Apps Script endpoint
+    const encodedData = encodeURIComponent(JSON.stringify(appData.items));
+    const syncUrl = `${googleScriptUrl}?action=sync&data=${encodedData}`;
+
+    const response = await fetch(syncUrl);
+    const result = await response.json();
+
+    if (result && result.status === 'success') {
+      if (result.items && Array.isArray(result.items)) {
+        appData.items = result.items;
+        saveData();
+        renderAll();
+      }
+      updateSyncBadge('success', '동기화 완료');
+      if (manual) showToast('구글 스프레드시트와 실시간 동기화 되었습니다!', 'success');
+      return;
+    }
+  } catch (err) {
+    console.warn('GET sync failed, trying POST fallback:', err);
+  }
+
+  // 2. Fallback POST sync
+  try {
     const payload = JSON.stringify({
       action: 'sync',
       items: appData.items
@@ -773,7 +796,7 @@ async function syncWithGoogleSheet(manual = false) {
     const response = await fetch(googleScriptUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8', // GAS compatibility
+        'Content-Type': 'text/plain;charset=utf-8',
       },
       body: payload
     });
@@ -791,30 +814,10 @@ async function syncWithGoogleSheet(manual = false) {
     } else {
       throw new Error(result.message || 'Server error');
     }
-  } catch (err) {
-    console.warn('POST sync failed, trying GET fetch fallback:', err);
-    
-    // Fallback: Fetch latest data via GET if POST is restricted
-    try {
-      const getUrl = `${googleScriptUrl}?action=get`;
-      const response = await fetch(getUrl);
-      const result = await response.json();
-
-      if (result && result.items && Array.isArray(result.items)) {
-        appData.items = result.items;
-        saveData();
-        renderAll();
-        updateSyncBadge('success', '동기화 완료 (읽기)');
-        if (manual) showToast('구글 스프레드시트 최신 데이터를 불러왔습니다.', 'success');
-      } else {
-        updateSyncBadge('error', '동기화 오류');
-        if (manual) showToast('스프레드시트 연동 중 오류가 발생했습니다.', 'error');
-      }
-    } catch (fetchErr) {
-      console.error('Cloud Sync failed:', fetchErr);
-      updateSyncBadge('error', '동기화 실패');
-      if (manual) showToast('네트워크 연동 실패. 로컬 저장소로 유지됩니다.', 'error');
-    }
+  } catch (fetchErr) {
+    console.error('Cloud Sync failed:', fetchErr);
+    updateSyncBadge('error', '동기화 실패');
+    if (manual) showToast('스프레드시트 연동 실패. 로컬 데이터로 유지됩니다.', 'error');
   }
 }
 

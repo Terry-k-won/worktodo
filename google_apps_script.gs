@@ -22,6 +22,18 @@ function doGet(e) {
       return createJsonResponse({ status: 'ok', message: 'Google Apps Script is online' });
     }
 
+    // Direct GET Sync (Guarantees CORS-free writing to Google Sheets from mobile/web)
+    if (action === 'sync' || action === 'save') {
+      if (e.parameter && e.parameter.data) {
+        var itemsData = JSON.parse(e.parameter.data);
+        if (itemsData && Array.isArray(itemsData)) {
+          saveAllItemsToSheet(itemsData);
+        }
+      }
+      var currentItems = getAllItemsFromSheet();
+      return createJsonResponse({ status: 'success', items: currentItems });
+    }
+
     var items = getAllItemsFromSheet();
     return createJsonResponse({ status: 'success', items: items });
   } catch (err) {
@@ -31,22 +43,29 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    if (!e || !e.postData || !e.postData.contents) {
-      return createJsonResponse({ status: 'error', message: 'No payload data' });
-    }
+    var itemsData = null;
 
-    var data = JSON.parse(e.postData.contents);
-    var action = data.action;
-
-    if (action === 'sync') {
-      if (data.items && Array.isArray(data.items)) {
-        saveAllItemsToSheet(data.items);
+    if (e && e.postData && e.postData.contents) {
+      try {
+        var parsed = JSON.parse(e.postData.contents);
+        if (parsed.items) itemsData = parsed.items;
+      } catch (err1) {
+        // Fallback for form data
       }
-      var updatedItems = getAllItemsFromSheet();
-      return createJsonResponse({ status: 'success', items: updatedItems });
     }
 
-    return createJsonResponse({ status: 'error', message: 'Unknown action' });
+    if (!itemsData && e && e.parameter && e.parameter.data) {
+      try {
+        itemsData = JSON.parse(e.parameter.data);
+      } catch (err2) {}
+    }
+
+    if (itemsData && Array.isArray(itemsData)) {
+      saveAllItemsToSheet(itemsData);
+    }
+
+    var updatedItems = getAllItemsFromSheet();
+    return createJsonResponse({ status: 'success', items: updatedItems });
   } catch (err) {
     return createJsonResponse({ status: 'error', message: err.toString() });
   }
