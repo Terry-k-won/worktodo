@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MY LIFE & TASK DASHBOARD</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Remix Icon -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon"><i class="ri-checkbox-multiple-line"></i></div>
+        <div>
+          <h1 class="app-title">Life & Task Dashboard</h1>
+          <p class="app-subtitle">오늘의 집중과 성장 기록</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div id="sync-status" class="sync-badge syncing" title="동기화 상태">
+          <i class="ri-refresh-line spin-icon"></i> <span class="sync-text">동기화 확인 중</span>
+        </div>
+        <button id="btn-sync" class="icon-btn" title="지금 수동 동기화">
+          <i class="ri-sync-line"></i>
+        </button>
+        <button id="btn-archive" class="icon-btn badge-btn" title="완료 및 휴지통 목록">
+          <i class="ri-archive-drawer-line"></i>
+          <span id="archive-count-badge" class="badge">0</span>
+        </button>
+        <button id="btn-settings" class="icon-btn" title="구글 연동 및 설정">
+          <i class="ri-settings-4-line"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation / Category Tabs (Mobile & Quick Filter) -->
+    <nav class="category-nav">
+      <button class="nav-tab active" data-target="all">
+        <i class="ri-dashboard-line"></i> 전체보기
+      </button>
+      <button class="nav-tab" data-target="today">
+        <i class="ri-sun-line"></i> 오늘 할 일
+      </button>
+      <button class="nav-tab" data-target="urgent">
+        <i class="ri-fire-line"></i> 당장 쌓인 과제
+      </button>
+      <button class="nav-tab" data-target="longterm">
+        <i class="ri-flag-line"></i> 장기 목표
+      </button>
+      <button class="nav-tab" data-target="skills">
+        <i class="ri-tools-line"></i> 개발할 능력
+      </button>
+      <button class="nav-tab" data-target="weakness">
+        <i class="ri-shield-flash-line"></i> 나의 부족함
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-grid" id="dashboard-grid">
+      
+      <!-- 1. 오늘 할 일 -->
+      <section class="category-card" id="card-today" data-category="today">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="category-icon today-icon"><i class="ri-sun-fill"></i></span>
+            <h2>오늘 할 일</h2>
+            <span class="item-count" id="count-today">0</span>
+          </div>
+          <button class="btn-add-item" onclick="openAddModal('today')">
+            <i class="ri-add-line"></i> 추가
+          </button>
+        </div>
+        <div class="card-body">
+          <ul class="task-list" id="list-today">
+            <!-- items injected by JS -->
+          </ul>
+          <div class="empty-state" id="empty-today">
+            <i class="ri-check-double-line"></i>
+            <p>오늘 할 일이 없습니다!</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 당장 내게 쌓여있는 과제 -->
+      <section class="category-card" id="card-urgent" data-category="urgent">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="category-icon urgent-icon"><i class="ri-fire-fill"></i></span>
+            <h2>당장 쌓여있는 과제</h2>
+            <span class="item-count" id="count-urgent">0</span>
+          </div>
+          <button class="btn-add-item" onclick="openAddModal('urgent')">
+            <i class="ri-add-line"></i> 추가
+          </button>
+        </div>
+        <div class="card-body">
+          <ul class="task-list" id="list-urgent">
+            <!-- items injected by JS -->
+          </ul>
+          <div class="empty-state" id="empty-urgent">
+            <i class="ri-task-line"></i>
+            <p>시급한 과제가 없습니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 앞으로 장기적으로 해야할 일 -->
+      <section class="category-card" id="card-longterm" data-category="longterm">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="category-icon longterm-icon"><i class="ri-flag-fill"></i></span>
+            <h2>장기적으로 해야할 일</h2>
+            <span class="item-count" id="count-longterm">0</span>
+          </div>
+          <button class="btn-add-item" onclick="openAddModal('longterm')">
+            <i class="ri-add-line"></i> 추가
+          </button>
+        </div>
+        <div class="card-body">
+          <ul class="task-list" id="list-longterm">
+            <!-- items injected by JS -->
+          </ul>
+          <div class="empty-state" id="empty-longterm">
+            <i class="ri-compass-3-line"></i>
+            <p>장기 목표를 등록해보세요.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 내가 개발해야할 능력들 -->
+      <section class="category-card" id="card-skills" data-category="skills">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="category-icon skills-icon"><i class="ri-tools-fill"></i></span>
+            <h2>내가 개발해야할 능력들</h2>
+            <span class="item-count" id="count-skills">0</span>
+          </div>
+          <button class="btn-add-item" onclick="openAddModal('skills')">
+            <i class="ri-add-line"></i> 추가
+          </button>
+        </div>
+        <div class="card-body">
+          <ul class="task-list" id="list-skills">
+            <!-- items injected by JS -->
+          </ul>
+          <div class="empty-state" id="empty-skills">
+            <i class="ri-lightbulb-line"></i>
+            <p>익히고 싶은 역량을 적어보세요.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. 나의 부족함 -->
+      <section class="category-card" id="card-weakness" data-category="weakness">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="category-icon weakness-icon"><i class="ri-shield-flash-fill"></i></span>
+            <h2>나의 부족함 (개선점)</h2>
+            <span class="item-count" id="count-weakness">0</span>
+          </div>
+          <button class="btn-add-item" onclick="openAddModal('weakness')">
+            <i class="ri-add-line"></i> 추가
+          </button>
+        </div>
+        <div class="card-body">
+          <ul class="task-list" id="list-weakness">
+            <!-- items injected by JS -->
+          </ul>
+          <div class="empty-state" id="empty-weakness">
+            <i class="ri-heart-pulse-line"></i>
+            <p>성찰할 점을 기록해 성장의 기회로 만드세요.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Floating Action Button for Mobile Quick Add -->
+    <button class="fab-btn" id="fab-add" title="빠른 추가">
+      <i class="ri-add-fill"></i>
+    </button>
+  </div>
+
+  <!-- Modal: Item Form (Add / Edit) -->
+  <div class="modal-overlay" id="modal-item">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-item-title">새 항목 추가</h3>
+        <button class="btn-close-modal" id="btn-close-item-modal"><i class="ri-close-line"></i></button>
+      </div>
+      <form id="form-item" onsubmit="handleItemFormSubmit(event)">
+        <input type="hidden" id="item-id" value="" />
+        
+        <div class="form-group">
+          <label for="item-category">구분 카테고리</label>
+          <select id="item-category" required class="form-control">
+            <option value="today">오늘 할 일</option>
+            <option value="urgent">당장 내게 쌓여있는 과제</option>
+            <option value="longterm">앞으로 장기적으로 해야할 일</option>
+            <option value="skills">내가 개발해야할 능력들</option>
+            <option value="weakness">나의 부족함 (개선점)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="item-content">내용</label>
+          <input type="text" id="item-content" placeholder="할 일이나 목표를 명확하게 작성하세요" required class="form-control" autocomplete="off" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col">
+            <label for="item-priority">우선순위</label>
+            <select id="item-priority" class="form-control">
+              <option value="high">🔥 높음</option>
+              <option value="medium" selected>⚡ 보통</option>
+              <option value="low">🌱 낮음</option>
+            </select>
+          </div>
+          <div class="form-group col">
+            <label for="item-duedate">목표/기한 (선택)</label>
+            <input type="date" id="item-duedate" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="item-note">메모/세부사항 (선택)</label>
+          <textarea id="item-note" rows="3" placeholder="관련 링크나 구체적인 실행 계획을 자유롭게 적으세요" class="form-control"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-item">취소</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-item">저장하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Completed Items & Trash (Archive) -->
+  <div class="modal-overlay" id="modal-archive">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <i class="ri-archive-drawer-line"></i>
+          <h3>완료 및 휴지통 목록</h3>
+        </div>
+        <button class="btn-close-modal" id="btn-close-archive-modal"><i class="ri-close-line"></i></button>
+      </div>
+      <div class="archive-nav">
+        <button class="archive-tab active" id="tab-archived-completed" onclick="switchArchiveTab('completed')">
+          <i class="ri-checkbox-circle-line"></i> 완료된 항목 (<span id="archive-completed-count">0</span>)
+        </button>
+        <button class="archive-tab" id="tab-archived-deleted" onclick="switchArchiveTab('deleted')">
+          <i class="ri-delete-bin-line"></i> 삭제된 휴지통 (<span id="archive-deleted-count">0</span>)
+        </button>
+      </div>
+
+      <div class="archive-body">
+        <ul class="archive-list" id="archive-list">
+          <!-- Rendered by JS -->
+        </ul>
+        <div class="empty-state" id="empty-archive" style="display: none;">
+          <i class="ri-inbox-archive-line"></i>
+          <p>보관함이 비어있습니다.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer space-between">
+        <button type="button" class="btn btn-danger-ghost" id="btn-clear-archive" onclick="confirmClearArchive()">
+          <i class="ri-delete-bin-7-line"></i> 휴지통 완전히 비우기
+        </button>
+        <button type="button" class="btn btn-secondary" id="btn-close-archive-bottom">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Google Apps Script Settings -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <i class="ri-google-line"></i>
+          <h3>구글 연동 및 설정</h3>
+        </div>
+        <button class="btn-close-modal" id="btn-close-settings-modal"><i class="ri-close-line"></i></button>
+      </div>
+      <div class="settings-body">
+        <div class="info-box">
+          <i class="ri-information-line"></i>
+          <p>구글 스프레드시트에 웹 앱(Google Apps Script)을 생성 후 배포받은 <strong>Web App URL</strong>을 아래에 설정하면 자동으로 실시간 연동됩니다.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="apps-script-url">Google Apps Script Web App URL</label>
+          <input type="url" id="apps-script-url" placeholder="https://script.google.com/macros/s/.../exec" class="form-control" />
+          <small class="help-text">URL이 없어도 로컬(브라우저 LocalStorage)에 안전하게 데이터가 저장됩니다.</small>
+        </div>
+
+        <div class="settings-actions">
+          <button type="button" class="btn btn-secondary" onclick="testGoogleConnection()">
+            <i class="ri-wifi-line"></i> 연결 테스트
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="exportDataJSON()">
+            <i class="ri-download-line"></i> 데이터 백업 (JSON)
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-settings">취소</button>
+        <button type="button" class="btn btn-primary" onclick="saveSettings()">저장 및 동기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
