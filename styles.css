@@ -337,6 +337,11 @@ body {
   grid-template-columns: 1fr;
 }
 
+.dashboard-wrapper.mode-calendar {
+  grid-template-columns: 1fr;
+  width: 100%;
+}
+
 .dashboard-wrapper.mode-all .main-cards-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));

@@ -283,6 +283,7 @@ function filterDashboardView(target) {
   });
 
   if (target === 'calendar') {
+    wrapper.className = 'dashboard-wrapper mode-calendar';
     if (calContainer) calContainer.style.display = 'flex';
     if (mainCardsContainer) mainCardsContainer.style.display = 'none';
     if (categorySidebar) categorySidebar.style.display = 'none';
@@ -322,9 +323,6 @@ function filterDashboardView(target) {
    ========================================================================== */
 
 function renderCalendar() {
-  const calContainer = document.getElementById('calendar-container');
-  if (!calContainer || calContainer.style.display === 'none') return;
-
   const titleEl = document.getElementById('cal-month-year-title');
   const daysBodyEl = document.getElementById('cal-days-body');
   if (!titleEl || !daysBodyEl) return;
