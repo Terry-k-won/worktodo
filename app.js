@@ -408,7 +408,7 @@ function createCategoryItemElement(item) {
   const priorityClass = { 1: 'prio-high', 2: 'prio-medium', 3: 'prio-low' }[priorityVal] || 'prio-medium';
 
   const dueDateHtml = item.dueDate 
-    ? `<span class="due-date"><i class="ri-calendar-line"></i> ${item.dueDate}</span>` 
+    ? `<span class="due-date"><i class="ri-calendar-line"></i> ${formatKoreanDateOnly(item.dueDate)}</span>` 
     : '';
 
   const noteHtml = item.note 
@@ -463,7 +463,7 @@ function renderArchiveList() {
         <div class="archive-item-info">
           <div class="archive-item-title">${escapeHtml(item.content)}</div>
           <div class="archive-meta">
-            [${catName}] ${item.status === 'completed' ? '완료됨' : '삭제됨'} • ${formatDate(item.updatedAt || item.createdAt)}
+            [${catName}] ${item.status === 'completed' ? '완료됨' : '삭제됨'} • ${formatKoreanDateOnly(item.updatedAt || item.createdAt)}
           </div>
         </div>
         <div class="archive-actions">
@@ -862,35 +862,57 @@ async function pushLocalToGoogleSheet(manual = false) {
   return false;
 }
 
-// 3. Intelligent Item Merger by ID & Last Modified Timestamp
+// 3. Intelligent Item Merger by ID & Timestamp
 function mergeItems(cloudItems, localItems) {
   const itemMap = new Map();
 
-  // Add local items
-  localItems.forEach(item => {
+  // Cloud items are SSOT (Single Source of Truth) from Google Sheets DB
+  cloudItems.forEach(item => {
     if (item && item.id) {
       itemMap.set(item.id, item);
     }
   });
 
-  // Merge cloud items (Cloud items take precedence if newer or if not present locally)
-  cloudItems.forEach(item => {
+  // Merge local items if they are newer or not present in cloud
+  localItems.forEach(item => {
     if (!item || !item.id) return;
 
     if (!itemMap.has(item.id)) {
       itemMap.set(item.id, item);
     } else {
       const existing = itemMap.get(item.id);
-      const cloudTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
-      const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+      const cloudTime = parseTimestampToMillis(existing.updatedAt || existing.createdAt);
+      const localTime = parseTimestampToMillis(item.updatedAt || item.createdAt);
 
-      if (cloudTime >= localTime) {
+      if (localTime > cloudTime) {
         itemMap.set(item.id, item);
       }
     }
   });
 
   return Array.from(itemMap.values());
+}
+
+function parseTimestampToMillis(dateStr) {
+  if (!dateStr) return 0;
+  const str = String(dateStr).trim();
+  
+  // Standard JS Date parse
+  let time = new Date(str).getTime();
+  if (!isNaN(time)) return time;
+
+  // Mobile Safari fallback: strip timezone parentheses
+  const cleanStr = str.replace(/\(.*\)/, '').replace(/GMT.*$/, '').trim();
+  time = new Date(cleanStr).getTime();
+  if (!isNaN(time)) return time;
+
+  // Regex parse for YYYY-MM-DD
+  const match = str.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+  if (match) {
+    return new Date(match[1], match[2] - 1, match[3]).getTime();
+  }
+
+  return 0;
 }
 
 async function testGoogleConnection() {
@@ -978,11 +1000,27 @@ function showToast(message, type = 'info', undoAction = null) {
   }, 4000);
 }
 
-function formatDate(isoStr) {
-  if (!isoStr) return '';
-  const d = new Date(isoStr);
-  if (isNaN(d.getTime())) return isoStr;
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+function formatKoreanDateOnly(dateStr) {
+  if (!dateStr) return '';
+  const str = String(dateStr).trim();
+  
+  // Format YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const parts = str.split('-');
+    return `${parts[0]}.${parts[1]}.${parts[2]}`;
+  }
+
+  try {
+    const cleanStr = str.replace(/\(.*\)/, '').replace(/GMT.*$/, '').trim();
+    const d = new Date(cleanStr);
+    if (isNaN(d.getTime())) return str;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}.${m}.${day}`;
+  } catch (e) {
+    return str;
+  }
 }
 
 function escapeHtml(str) {

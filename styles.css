@@ -78,12 +78,12 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  padding: 12px 16px;
+  padding: 14px 20px;
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   max-width: 100%;
   box-sizing: border-box;
@@ -102,8 +102,8 @@ body {
   font-size: 1.8rem;
   color: var(--primary);
   background: var(--primary-light);
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -113,19 +113,20 @@ body {
 
 .app-title {
   font-size: 1.25rem;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1.25;
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: keep-all;
+  white-space: normal; /* Allow clean multi-line wrapping on mobile */
 }
 
 .app-subtitle {
   font-size: 0.8rem;
   color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .header-actions {
@@ -135,48 +136,69 @@ body {
   flex-shrink: 0;
 }
 
-/* Mobile Responsiveness for Header */
+/* Mobile Responsiveness for Header (Under 640px) */
 @media (max-width: 640px) {
   .app-container {
     padding: 12px 10px;
   }
 
   .app-header {
-    padding: 10px 12px;
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
   }
 
   .logo-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 1.3rem;
+    width: 38px;
+    height: 38px;
+    font-size: 1.35rem;
   }
 
   .app-title {
-    font-size: 1.02rem;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    word-break: keep-all;
   }
 
   .app-subtitle {
-    display: none;
+    display: block;
+    font-size: 0.72rem;
   }
 
   .header-actions {
-    gap: 4px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 10px;
   }
 
   .sync-badge {
-    padding: 4px 6px;
-    font-size: 0.7rem;
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    margin-right: auto; /* Push sync badge to the left of action buttons */
   }
 
   .sync-badge .sync-text {
-    display: none;
+    display: inline-block;
   }
 
   .icon-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 1.05rem;
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
   }
 }
 
