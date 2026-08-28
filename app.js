@@ -7,12 +7,10 @@
 const STORAGE_KEY_ITEMS = 'life_dashboard_items_v2';
 const STORAGE_KEY_URL = 'life_dashboard_script_url';
 
-// Default Google Apps Script URL (Embedded User's Spreadsheet Web App)
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyOJh2aHm1jfjHs3YZUbZFGK7gkl-cMqKJVMxL_dm4zBAl36eAegtLCFWnq_XW2KYHl0w/exec';
-let googleScriptUrl = localStorage.getItem(STORAGE_KEY_URL) || DEFAULT_SCRIPT_URL;
-if (!localStorage.getItem(STORAGE_KEY_URL)) {
-  localStorage.setItem(STORAGE_KEY_URL, DEFAULT_SCRIPT_URL);
-}
+// Default Google Apps Script URL (Embedded User's New Spreadsheet Web App)
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyrcq_Fa-Vpenrr4vhlM_zlW7c4RtEZTsA7wUrO7nAh89vuxPXdnx3B-WIrb2e9PokuUQ/exec';
+let googleScriptUrl = DEFAULT_SCRIPT_URL;
+localStorage.setItem(STORAGE_KEY_URL, DEFAULT_SCRIPT_URL);
 
 // App State
 let appData = {
