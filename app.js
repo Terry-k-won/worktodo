@@ -114,12 +114,10 @@ function getInitialDemoData() {
    ========================================================================== */
 
 function setupEventListeners() {
-  // Navigation Filter Tabs
+  // Navigation Filter Tabs — call filterDashboardView only once
   document.querySelectorAll('.category-nav .nav-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
-      document.querySelectorAll('.category-nav .nav-tab').forEach(t => t.classList.remove('active'));
       const target = e.currentTarget.getAttribute('data-target');
-      e.currentTarget.classList.add('active');
       filterDashboardView(target);
     });
   });
@@ -197,7 +195,12 @@ function renderAll() {
   renderArchiveList();
   updateBadgesAndCounts();
   renderRightSidebar();
-  filterDashboardView(currentFilter);
+  // Re-apply current view without resetting the calendar display
+  if (currentFilter !== 'calendar') {
+    filterDashboardView(currentFilter);
+  } else {
+    renderCalendar();
+  }
 }
 
 function renderCategoryLists() {
@@ -270,48 +273,52 @@ function renderRightSidebar() {
 
 function filterDashboardView(target) {
   currentFilter = target;
+
   const wrapper = document.getElementById('dashboard-wrapper');
-  const cards = document.querySelectorAll('.category-card');
   const calContainer = document.getElementById('calendar-container');
   const mainCardsContainer = document.getElementById('main-cards-container');
   const categorySidebar = document.getElementById('category-sidebar');
+  const cards = document.querySelectorAll('.category-card');
 
-  // Update top navigation active class
+  // Update nav tab active state
   document.querySelectorAll('.category-nav .nav-tab').forEach(tab => {
-    const t = tab.getAttribute('data-target');
-    tab.classList.toggle('active', t === target);
+    tab.classList.toggle('active', tab.getAttribute('data-target') === target);
   });
 
   if (target === 'calendar') {
-    if (calContainer) calContainer.style.display = 'flex';
+    // Show calendar, hide the rest
+    if (calContainer) { calContainer.style.display = 'flex'; calContainer.style.flexDirection = 'column'; }
     if (wrapper) wrapper.style.display = 'none';
     renderCalendar();
+    return;
+  }
+
+  // Non-calendar views: show wrapper, hide calendar
+  if (calContainer) calContainer.style.display = 'none';
+  if (wrapper) { wrapper.style.display = ''; wrapper.style.removeProperty && wrapper.style.removeProperty('display'); }
+
+  if (target === 'all') {
+    wrapper.className = 'dashboard-wrapper mode-all';
+    if (categorySidebar) categorySidebar.style.display = 'none';
+    if (mainCardsContainer) mainCardsContainer.style.display = 'grid';
+    cards.forEach(card => {
+      card.classList.remove('focused');
+      card.style.display = 'flex';
+    });
   } else {
-    if (calContainer) calContainer.style.display = 'none';
-    if (wrapper) wrapper.style.display = 'grid';
-    if (mainCardsContainer) mainCardsContainer.style.display = (target === 'all') ? 'grid' : 'flex';
-    
-    if (target === 'all') {
-      wrapper.className = 'dashboard-wrapper mode-all';
-      if (categorySidebar) categorySidebar.style.display = 'none';
-      cards.forEach(card => {
-        card.classList.remove('focused');
+    wrapper.className = 'dashboard-wrapper mode-focused';
+    if (categorySidebar) categorySidebar.style.display = 'flex';
+    if (mainCardsContainer) mainCardsContainer.style.display = 'flex';
+    cards.forEach(card => {
+      const cat = card.getAttribute('data-category');
+      if (cat === target) {
+        card.classList.add('focused');
         card.style.display = 'flex';
-      });
-    } else {
-      wrapper.className = 'dashboard-wrapper mode-focused';
-      if (categorySidebar) categorySidebar.style.display = 'flex';
-      cards.forEach(card => {
-        const cat = card.getAttribute('data-category');
-        if (cat === target) {
-          card.classList.add('focused');
-          card.style.display = 'flex';
-        } else {
-          card.classList.remove('focused');
-          card.style.display = 'none';
-        }
-      });
-    }
+      } else {
+        card.classList.remove('focused');
+        card.style.display = 'none';
+      }
+    });
   }
 
   renderRightSidebar();
