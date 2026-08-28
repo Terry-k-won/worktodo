@@ -283,13 +283,12 @@ function filterDashboardView(target) {
   });
 
   if (target === 'calendar') {
-    wrapper.className = 'dashboard-wrapper mode-calendar';
     if (calContainer) calContainer.style.display = 'flex';
-    if (mainCardsContainer) mainCardsContainer.style.display = 'none';
-    if (categorySidebar) categorySidebar.style.display = 'none';
+    if (wrapper) wrapper.style.display = 'none';
     renderCalendar();
   } else {
     if (calContainer) calContainer.style.display = 'none';
+    if (wrapper) wrapper.style.display = 'grid';
     if (mainCardsContainer) mainCardsContainer.style.display = (target === 'all') ? 'grid' : 'flex';
     
     if (target === 'all') {

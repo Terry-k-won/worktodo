@@ -66,39 +66,38 @@
       </button>
     </nav>
 
+    <!-- Interactive Calendar Section (Standalone Large View) -->
+    <section class="calendar-wrapper-card" id="calendar-container" style="display: none;">
+      <div class="calendar-header-bar">
+        <div class="calendar-month-controls">
+          <button class="calendar-nav-btn" id="cal-btn-prev" title="이전 달"><i class="ri-arrow-left-s-line"></i></button>
+          <h2 id="cal-month-year-title">2026년 8월</h2>
+          <button class="calendar-nav-btn" id="cal-btn-next" title="다음 달"><i class="ri-arrow-right-s-line"></i></button>
+          <button class="calendar-nav-btn today-btn" id="cal-btn-today">오늘</button>
+        </div>
+        <div class="calendar-legend">
+          <span class="legend-item today-badge"><i class="ri-sun-fill"></i> 오늘 할 일</span>
+          <span class="legend-item urgent-badge"><i class="ri-fire-fill"></i> 쌓여있는 과제</span>
+          <span class="legend-item longterm-badge"><i class="ri-flag-fill"></i> 장기 목표</span>
+        </div>
+      </div>
+
+      <div class="calendar-grid-header">
+        <div class="cal-day-header sun">일</div>
+        <div class="cal-day-header">월</div>
+        <div class="cal-day-header">화</div>
+        <div class="cal-day-header">수</div>
+        <div class="cal-day-header">목</div>
+        <div class="cal-day-header">금</div>
+        <div class="cal-day-header sat">토</div>
+      </div>
+      <div class="calendar-days-body" id="cal-days-body">
+        <!-- Calendar Days & Tasks Rendered by JS -->
+      </div>
+    </section>
+
     <!-- Main Content Area -->
     <main class="dashboard-wrapper mode-all" id="dashboard-wrapper">
-      
-      <!-- Interactive Calendar Section (Large View) -->
-      <section class="calendar-wrapper-card" id="calendar-container" style="display: none;">
-        <div class="calendar-header-bar">
-          <div class="calendar-month-controls">
-            <button class="calendar-nav-btn" id="cal-btn-prev" title="이전 달"><i class="ri-arrow-left-s-line"></i></button>
-            <h2 id="cal-month-year-title">2026년 8월</h2>
-            <button class="calendar-nav-btn" id="cal-btn-next" title="다음 달"><i class="ri-arrow-right-s-line"></i></button>
-            <button class="calendar-nav-btn today-btn" id="cal-btn-today">오늘</button>
-          </div>
-          <div class="calendar-legend">
-            <span class="legend-item today-badge"><i class="ri-sun-fill"></i> 오늘 할 일</span>
-            <span class="legend-item urgent-badge"><i class="ri-fire-fill"></i> 쌓여있는 과제</span>
-            <span class="legend-item longterm-badge"><i class="ri-flag-fill"></i> 장기 목표</span>
-          </div>
-        </div>
-
-        <div class="calendar-grid-header">
-          <div class="cal-day-header sun">일</div>
-          <div class="cal-day-header">월</div>
-          <div class="cal-day-header">화</div>
-          <div class="cal-day-header">수</div>
-          <div class="cal-day-header">목</div>
-          <div class="cal-day-header">금</div>
-          <div class="cal-day-header sat">토</div>
-        </div>
-        <div class="calendar-days-body" id="cal-days-body">
-          <!-- Calendar Days & Tasks Rendered by JS -->
-        </div>
-      </section>
-
       <div class="main-cards-container" id="main-cards-container">
         
         <!-- 1. 오늘 할 일 -->
