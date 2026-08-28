@@ -30,17 +30,28 @@ const CATEGORY_NAMES = {
 };
 
 // Initialize Application
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   loadData();
   setupEventListeners();
   renderAll();
 
-  // If Script URL is configured, auto sync on launch
+  // If Script URL is configured, PULL LATEST MASTER DB FROM GOOGLE SHEETS FIRST!
   if (googleScriptUrl) {
     document.getElementById('apps-script-url').value = googleScriptUrl;
-    syncWithGoogleSheet();
+    await fetchLatestFromGoogleSheet();
   } else {
     updateSyncBadge('local', '로컬 저장소 모드');
+  }
+});
+
+// Auto pull latest data when switching back to this tab
+window.addEventListener('focus', () => {
+  if (googleScriptUrl) fetchLatestFromGoogleSheet();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && googleScriptUrl) {
+    fetchLatestFromGoogleSheet();
   }
 });
 
@@ -219,7 +230,7 @@ function setupEventListeners() {
       showToast('구글 앱스 스크립트 URL을 먼저 등록해주세요.', 'warning');
       return;
     }
-    syncWithGoogleSheet(true);
+    fetchLatestFromGoogleSheet(true);
   });
 
   document.getElementById('btn-archive').addEventListener('click', openArchiveModal);
@@ -553,9 +564,9 @@ function handleItemFormSubmit(e) {
   renderAll();
   closeAddModal();
 
-  // Background Cloud Sync
+  // Push updated state to Google Sheets master DB
   if (googleScriptUrl) {
-    syncWithGoogleSheet();
+    pushLocalToGoogleSheet();
   }
 }
 
@@ -581,7 +592,7 @@ function toggleItemComplete(id, event) {
     showToast('항목이 완료되어 보관함으로 이동했습니다.', 'success', () => restoreItem(id));
 
     if (googleScriptUrl) {
-      syncWithGoogleSheet();
+      pushLocalToGoogleSheet();
     }
   }, 350);
 }
@@ -606,7 +617,7 @@ function deleteItemToTrash(id, event) {
     showToast('항목이 휴지통으로 이동했습니다.', 'info', () => restoreItem(id));
 
     if (googleScriptUrl) {
-      syncWithGoogleSheet();
+      pushLocalToGoogleSheet();
     }
   }, 350);
 }
@@ -623,7 +634,7 @@ function restoreItem(id) {
   showToast('항목이 원래 카테고리로 복원되었습니다.', 'success');
 
   if (googleScriptUrl) {
-    syncWithGoogleSheet();
+    pushLocalToGoogleSheet();
   }
 }
 
@@ -635,7 +646,7 @@ function permanentlyDeleteItem(id) {
   showToast('항목이 영구적으로 삭제되었습니다.', 'warning');
 
   if (googleScriptUrl) {
-    syncWithGoogleSheet();
+    pushLocalToGoogleSheet();
   }
 }
 
@@ -655,7 +666,7 @@ function confirmClearArchive() {
     showToast('선택한 항목들이 모두 삭제되었습니다.', 'success');
 
     if (googleScriptUrl) {
-      syncWithGoogleSheet();
+      pushLocalToGoogleSheet();
     }
   }
 }
@@ -746,45 +757,76 @@ function saveSettings() {
   closeSettingsModal();
 
   if (googleScriptUrl) {
-    syncWithGoogleSheet(true);
+    fetchLatestFromGoogleSheet(true);
   } else {
     updateSyncBadge('local', '로컬 저장소 모드');
   }
 }
 
 /* ==========================================================================
-   Google Apps Script Sync Backend
+   Google Apps Script Bidirectional Sync Engine
    ========================================================================== */
 
-async function syncWithGoogleSheet(manual = false) {
-  if (!googleScriptUrl) return;
+// 1. Pull Latest Data from Google Sheet Master DB
+async function fetchLatestFromGoogleSheet(manual = false) {
+  if (!googleScriptUrl) return false;
 
-  updateSyncBadge('syncing', '동기화 중...');
+  updateSyncBadge('syncing', '클라우드 수신 중...');
 
-  // 1. Primary Sync method: GET request with URL-encoded JSON payload
-  // This bypasses browser CORS preflight blocks completely on all mobile and web devices!
+  try {
+    const response = await fetch(`${googleScriptUrl}?action=get&t=${Date.now()}`);
+    const result = await response.json();
+
+    if (result && result.status === 'success' && Array.isArray(result.items)) {
+      if (result.items.length > 0) {
+        // Master Sheet has data: Merge cloud items with local storage
+        appData.items = mergeItems(result.items, appData.items);
+        saveData();
+        renderAll();
+      } else if (appData.items.length > 0) {
+        // Master Sheet is empty: push initial local items to sheet
+        await pushLocalToGoogleSheet();
+      }
+      updateSyncBadge('success', '동기화 완료');
+      if (manual) showToast('구글 스프레드시트 최신 데이터를 불러왔습니다!', 'success');
+      return true;
+    }
+  } catch (err) {
+    console.error('Fetch from Google Sheet failed:', err);
+    updateSyncBadge('error', '동기화 실패');
+    if (manual) showToast('스프레드시트 수신 실패. 로컬 데이터를 유지합니다.', 'error');
+  }
+  return false;
+}
+
+// 2. Push Local Items State to Google Sheet Master DB
+async function pushLocalToGoogleSheet(manual = false) {
+  if (!googleScriptUrl) return false;
+
+  updateSyncBadge('syncing', '스프레드시트에 저장 중...');
+
   try {
     const encodedData = encodeURIComponent(JSON.stringify(appData.items));
-    const syncUrl = `${googleScriptUrl}?action=sync&data=${encodedData}`;
+    const syncUrl = `${googleScriptUrl}?action=sync&data=${encodedData}&t=${Date.now()}`;
 
     const response = await fetch(syncUrl);
     const result = await response.json();
 
     if (result && result.status === 'success') {
-      if (result.items && Array.isArray(result.items)) {
+      if (result.items && Array.isArray(result.items) && result.items.length > 0) {
         appData.items = result.items;
         saveData();
         renderAll();
       }
       updateSyncBadge('success', '동기화 완료');
-      if (manual) showToast('구글 스프레드시트와 실시간 동기화 되었습니다!', 'success');
-      return;
+      if (manual) showToast('구글 스프레드시트에 저장되었습니다!', 'success');
+      return true;
     }
   } catch (err) {
-    console.warn('GET sync failed, trying POST fallback:', err);
+    console.warn('GET push failed, trying POST fallback:', err);
   }
 
-  // 2. Fallback POST sync
+  // Fallback POST push
   try {
     const payload = JSON.stringify({
       action: 'sync',
@@ -802,21 +844,53 @@ async function syncWithGoogleSheet(manual = false) {
     const result = await response.json();
 
     if (result && result.status === 'success') {
-      if (result.items && Array.isArray(result.items)) {
+      if (result.items && Array.isArray(result.items) && result.items.length > 0) {
         appData.items = result.items;
         saveData();
         renderAll();
       }
       updateSyncBadge('success', '동기화 완료');
-      if (manual) showToast('구글 스프레드시트와 동기화 되었습니다!', 'success');
-    } else {
-      throw new Error(result.message || 'Server error');
+      if (manual) showToast('구글 스프레드시트에 저장되었습니다!', 'success');
+      return true;
     }
   } catch (fetchErr) {
-    console.error('Cloud Sync failed:', fetchErr);
+    console.error('Cloud Push failed:', fetchErr);
     updateSyncBadge('error', '동기화 실패');
-    if (manual) showToast('스프레드시트 연동 실패. 로컬 데이터로 유지됩니다.', 'error');
+    if (manual) showToast('스프레드시트 저장 실패. 로컬 데이터로 유지됩니다.', 'error');
   }
+
+  return false;
+}
+
+// 3. Intelligent Item Merger by ID & Last Modified Timestamp
+function mergeItems(cloudItems, localItems) {
+  const itemMap = new Map();
+
+  // Add local items
+  localItems.forEach(item => {
+    if (item && item.id) {
+      itemMap.set(item.id, item);
+    }
+  });
+
+  // Merge cloud items (Cloud items take precedence if newer or if not present locally)
+  cloudItems.forEach(item => {
+    if (!item || !item.id) return;
+
+    if (!itemMap.has(item.id)) {
+      itemMap.set(item.id, item);
+    } else {
+      const existing = itemMap.get(item.id);
+      const cloudTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
+      const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+
+      if (cloudTime >= localTime) {
+        itemMap.set(item.id, item);
+      }
+    }
+  });
+
+  return Array.from(itemMap.values());
 }
 
 async function testGoogleConnection() {
