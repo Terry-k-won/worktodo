@@ -63,10 +63,10 @@ function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_ITEMS);
     if (raw) {
-      appData.items = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      appData.items = Array.isArray(parsed) ? parsed.filter(item => item && item.id && !String(item.id).startsWith('demo_')) : [];
     } else {
-      // Demo initial data if fresh start
-      appData.items = getInitialDemoData();
+      appData.items = [];
       saveData();
     }
   } catch (err) {
@@ -77,6 +77,10 @@ function loadData() {
 
 function saveData() {
   try {
+    // Filter demo items before saving
+    if (Array.isArray(appData.items)) {
+      appData.items = appData.items.filter(item => item && item.id && !String(item.id).startsWith('demo_'));
+    }
     localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appData.items));
   } catch (err) {
     console.error('Failed to save data to LocalStorage:', err);
@@ -93,119 +97,7 @@ function getPriorityValue(prio) {
 }
 
 function getInitialDemoData() {
-  const now = new Date().toISOString();
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  return [
-    // 1. 오늘 할 일 (Today)
-    {
-      id: 'demo_today_1',
-      category: 'today',
-      content: '🔥 긴급 업무 서류 검토 및 최종 제출',
-      priority: 'high',
-      dueDate: todayStr,
-      note: '우선순위 높음 (최상단 노출)',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'demo_today_2',
-      category: 'today',
-      content: '⚡ 주간 프로젝트 일정 팀원 공유',
-      priority: 'medium',
-      dueDate: todayStr,
-      note: '우선순위 보통',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'demo_today_3',
-      category: 'today',
-      content: '🌱 책상 정돈 및 데스크탑 파일 정리',
-      priority: 'low',
-      dueDate: todayStr,
-      note: '우선순위 낮음',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-
-    // 2. 당장 내게 쌓여있는 과제 (Urgent)
-    {
-      id: 'demo_urgent_1',
-      category: 'urgent',
-      content: '🔥 구글 앱스 스크립트 DB 연동 및 배포 테스트',
-      priority: 'high',
-      dueDate: '',
-      note: '시급한 핵심 개발 과제',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'demo_urgent_2',
-      category: 'urgent',
-      content: '⚡ 모바일 웹 UI 반응형 레이아웃 점검',
-      priority: 'medium',
-      dueDate: '',
-      note: '우선순위 보통',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-
-    // 3. 장기 목표 (Longterm)
-    {
-      id: 'demo_long_1',
-      category: 'longterm',
-      content: '🔥 매일 1시간 개인 역량 강화 공부 습관화',
-      priority: 'high',
-      dueDate: '',
-      note: '장기 성장 핵심 목표',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'demo_long_2',
-      category: 'longterm',
-      content: '🌱 블로그 기술 포스팅 월 2회 작성',
-      priority: 'low',
-      dueDate: '',
-      note: '우선순위 낮음',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-
-    // 4. 개발할 능력 (Skills)
-    {
-      id: 'demo_skills_1',
-      category: 'skills',
-      content: '🔥 모바일 프론트엔드 UI & UX 디자인 능력',
-      priority: 'high',
-      dueDate: '',
-      note: '핵심 역량',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    },
-
-    // 5. 나의 부족함 (Weakness)
-    {
-      id: 'demo_weak_1',
-      category: 'weakness',
-      content: '🔥 미루는 습관 줄이고 실시간 피드백 반영하기',
-      priority: 'high',
-      dueDate: '',
-      note: '최우선 개선 과제',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    }
-  ];
+  return [];
 }
 
 /* ==========================================================================
