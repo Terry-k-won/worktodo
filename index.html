@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Remix Icon -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v13" />
+  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v14" />
 </head>
 <body>
   <div id="app" class="app-container">
@@ -361,13 +361,16 @@
       </form>
     </div>
 
-  <!-- Modal: Day Detail / Agenda for Dates with Events -->
+  <!-- Modal: Day Detail / Agenda for Dates with Events (Floating Main View) -->
   <div class="modal-overlay" id="modal-gcal-day-detail">
-    <div class="modal-content">
+    <div class="modal-content modal-day-agenda">
       <div class="modal-header">
         <div class="modal-header-title">
-          <i class="ri-calendar-event-fill" style="color: #4285F4; font-size: 1.3rem;"></i>
-          <h3 id="modal-day-detail-title">일정 목록</h3>
+          <i class="ri-calendar-event-fill" style="color: #4285F4; font-size: 1.4rem;"></i>
+          <div>
+            <h3 id="modal-day-detail-title">일정 목록</h3>
+            <span id="modal-day-detail-subtitle" style="font-size: 0.78rem; color: #64748b; font-weight: 500;"></span>
+          </div>
         </div>
         <button class="btn-close-modal" onclick="closeDayDetailModal()"><i class="ri-close-line"></i></button>
       </div>
@@ -377,7 +380,7 @@
         </div>
       </div>
       <div class="modal-footer space-between">
-        <button type="button" class="btn btn-primary" id="btn-add-event-on-day" onclick="handleAddEventOnDayClick()" style="background: #4285F4;">
+        <button type="button" class="btn btn-primary" id="btn-add-event-on-day" onclick="handleAddEventOnDayClick()" style="background: #4285F4; font-weight: 700;">
           <i class="ri-add-line"></i> + 이 날짜에 새 일정 추가
         </button>
         <button type="button" class="btn btn-secondary" onclick="closeDayDetailModal()">닫기</button>

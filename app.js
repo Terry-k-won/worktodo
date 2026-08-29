@@ -817,22 +817,53 @@ function renderCalendar() {
     const cellDateStr = `${currentCalYear}-${String(currentCalMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
     const isToday = (cellDateStr === todayStr);
 
+function openDayDetailForCell(dateStr) {
+  if (!isGCalSignedIn()) {
+    showToast('구글 캘린더를 연동하면 일정을 추가/관리할 수 있습니다.', 'warning');
+    handleGoogleSignIn();
+    return;
+  }
+  const dayEvents = gcalEvents.filter(e => isEventOnDate(e, dateStr));
+  if (dayEvents.length > 0) {
+    openDayDetailModal(dateStr, dayEvents);
+  } else {
+    openGCalModal(null, dateStr);
+  }
+}
+
+function renderCalendar() {
+  const titleEl = document.getElementById('cal-month-year-title');
+  const daysBodyEl = document.getElementById('cal-days-body');
+  if (!titleEl || !daysBodyEl) return;
+
+  // Set Month Title
+  titleEl.textContent = `${currentCalYear}년 ${currentCalMonth + 1}월`;
+
+  daysBodyEl.innerHTML = '';
+
+  const firstDayIndex = new Date(currentCalYear, currentCalMonth, 1).getDay(); // 0 = Sun
+  const lastDate = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+  const prevLastDate = new Date(currentCalYear, currentCalMonth, 0).getDate();
+
+  const todayStr = getTodayDateString();
+
+  // 1. Previous Month Days Padding
+  for (let x = firstDayIndex; x > 0; x--) {
+    const prevDate = prevLastDate - x + 1;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day-cell other-month';
+    cell.innerHTML = `<span class="cal-day-num">${prevDate}</span>`;
+    daysBodyEl.appendChild(cell);
+  }
+
+  // 2. Current Month Days
+  for (let i = 1; i <= lastDate; i++) {
+    const cellDateStr = `${currentCalYear}-${String(currentCalMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    const isToday = (cellDateStr === todayStr);
+
     const cell = document.createElement('div');
     cell.className = `cal-day-cell ${isToday ? 'is-today' : ''}`;
-    cell.onclick = () => {
-      if (!isGCalSignedIn()) {
-        showToast('구글 캘린더를 연동하면 일정을 추가/관리할 수 있습니다.', 'warning');
-        handleGoogleSignIn();
-        return;
-      }
-      const dayEvents = gcalEvents.filter(e => isEventOnDate(e, cellDateStr));
-
-      if (dayEvents.length > 0) {
-        openDayDetailModal(cellDateStr, dayEvents);
-      } else {
-        openGCalModal(null, cellDateStr);
-      }
-    };
+    cell.onclick = () => openDayDetailForCell(cellDateStr);
 
     let cellHtml = `<span class="cal-day-num">${i}</span>`;
     cellHtml += `<div class="cal-events-list">`;
@@ -842,12 +873,11 @@ function renderCalendar() {
       if (!isEventOnDate(event, cellDateStr)) return;
 
       const title = escapeHtml(event.summary || '(제목 없음)');
-      const eventIdEscaped = escapeHtml(event.id);
       const isHoliday = event.isHoliday || (event.organizer?.email || '').includes('holiday') || (event.id || '').includes('holiday');
 
       if (isHoliday) {
         cellHtml += `
-          <div class="cal-task-pill gcal-holiday" title="공휴일: ${title}" onclick="event.stopPropagation(); handleGCalPillClick('${eventIdEscaped}')">
+          <div class="cal-task-pill gcal-holiday" title="공휴일: ${title}" onclick="event.stopPropagation(); openDayDetailForCell('${cellDateStr}')">
             <i class="ri-flag-fill" style="font-size:0.75em; flex-shrink:0; color:#dc2626;"></i>
             <span>${title}</span>
           </div>
@@ -855,7 +885,7 @@ function renderCalendar() {
       } else {
         const colorStyle = getGCalEventColor(event.colorId);
         cellHtml += `
-          <div class="cal-task-pill gcal-event" title="구글 캘린더: ${title}" style="border-left-color: ${colorStyle.border}; background: ${colorStyle.bg}; color: ${colorStyle.text};" onclick="event.stopPropagation(); handleGCalPillClick('${eventIdEscaped}')">
+          <div class="cal-task-pill gcal-event" title="구글 캘린더: ${title}" style="border-left-color: ${colorStyle.border}; background: ${colorStyle.bg}; color: ${colorStyle.text};" onclick="event.stopPropagation(); openDayDetailForCell('${cellDateStr}')">
             <i class="ri-google-fill" style="font-size:0.75em; flex-shrink:0; color:${colorStyle.border};"></i>
             <span>${title}</span>
           </div>
@@ -1694,12 +1724,18 @@ function openDayDetailModal(dateStr, events = []) {
   currentSelectedDayStr = dateStr;
   const modal = document.getElementById('modal-gcal-day-detail');
   const titleEl = document.getElementById('modal-day-detail-title');
+  const subtitleEl = document.getElementById('modal-day-detail-subtitle');
   const listEl = document.getElementById('day-detail-events-list');
 
   if (!modal || !titleEl || !listEl) return;
 
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  const d = new Date(dateStr + 'T00:00:00');
+  const dayName = isNaN(d.getTime()) ? '' : ` (${dayNames[d.getDay()]})`;
+
   const parts = dateStr.split('-');
-  titleEl.textContent = `${parts[0]}년 ${parseInt(parts[1], 10)}월 ${parseInt(parts[2], 10)}일 일정 (${events.length}개)`;
+  titleEl.textContent = `${parts[0]}년 ${parseInt(parts[1], 10)}월 ${parseInt(parts[2], 10)}일${dayName} 일정`;
+  if (subtitleEl) subtitleEl.textContent = `등록된 일정 ${events.length}개`;
 
   listEl.innerHTML = '';
 
@@ -1715,9 +1751,19 @@ function openDayDetailModal(dateStr, events = []) {
     const descHtml = desc ? `<div class="day-detail-event-desc">${desc}</div>` : '';
     const eventIdEscaped = escapeHtml(event.id);
 
+    let timeInfo = '';
+    if (event.start?.dateTime && event.end?.dateTime) {
+      const startTime = event.start.dateTime.substring(11, 16);
+      const endTime = event.end.dateTime.substring(11, 16);
+      timeInfo = `<div class="day-detail-event-time"><i class="ri-time-line"></i> ${startTime} ~ ${endTime}</div>`;
+    } else {
+      timeInfo = `<div class="day-detail-event-time"><i class="ri-calendar-line"></i> 하루 종일</div>`;
+    }
+
     card.innerHTML = `
       <div class="day-detail-event-info">
         <div class="day-detail-event-title">${summary}</div>
+        ${timeInfo}
         ${descHtml}
       </div>
       <div class="day-detail-event-actions">
