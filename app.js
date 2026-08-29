@@ -231,6 +231,7 @@ function isGCalSignedIn() {
 function updateGCalUI() {
   const statusEl = document.getElementById('gcal-status');
   const signinBtn = document.getElementById('gcal-signin-btn');
+  const addEventBtn = document.getElementById('gcal-add-event-btn');
   const signoutBtn = document.getElementById('gcal-signout-btn');
   if (!statusEl || !signinBtn || !signoutBtn) return;
 
@@ -238,6 +239,7 @@ function updateGCalUI() {
     statusEl.className = 'gcal-status-badge gcal-loading';
     statusEl.innerHTML = '<i class="ri-loader-4-line spin-icon"></i><span>초기화 중...</span>';
     signinBtn.style.display = 'none';
+    if (addEventBtn) addEventBtn.style.display = 'none';
     signoutBtn.style.display = 'none';
     return;
   }
@@ -246,11 +248,13 @@ function updateGCalUI() {
     statusEl.className = 'gcal-status-badge gcal-connected';
     statusEl.innerHTML = '<i class="ri-checkbox-circle-fill"></i><span>구글 캘린더 연동됨</span>';
     signinBtn.style.display = 'none';
+    if (addEventBtn) addEventBtn.style.display = 'flex';
     signoutBtn.style.display = 'flex';
   } else {
     statusEl.className = 'gcal-status-badge gcal-disconnected';
     statusEl.innerHTML = '<i class="ri-calendar-close-line"></i><span>구글 캘린더 미연동</span>';
     signinBtn.style.display = 'flex';
+    if (addEventBtn) addEventBtn.style.display = 'none';
     signoutBtn.style.display = 'none';
   }
 }
@@ -404,7 +408,18 @@ function setupEventListeners() {
 
   document.getElementById('btn-archive').addEventListener('click', openArchiveModal);
   document.getElementById('btn-settings').addEventListener('click', openSettingsModal);
-  document.getElementById('fab-add').addEventListener('click', () => openAddModal('today'));
+  document.getElementById('fab-add').addEventListener('click', () => {
+    if (isCalendarView) {
+      if (isGCalSignedIn()) {
+        openGCalModal();
+      } else {
+        showToast('구글 캘린더를 연동하면 일정을 추가할 수 있습니다.', 'warning');
+        handleGoogleSignIn();
+      }
+    } else {
+      openAddModal('today');
+    }
+  });
 
   // Modals Close Buttons
   document.getElementById('btn-close-item-modal').addEventListener('click', closeAddModal);

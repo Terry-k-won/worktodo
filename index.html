@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Remix Icon -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v6" />
+  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v7" />
 </head>
 <body>
   <div id="app" class="app-container">
@@ -75,7 +75,7 @@
           <button class="calendar-nav-btn" id="cal-btn-next" title="다음 달"><i class="ri-arrow-right-s-line"></i></button>
           <button class="calendar-nav-btn today-btn" id="cal-btn-today">오늘</button>
         </div>
-        <!-- Google Calendar Auth Area -->
+        <!-- Google Calendar Auth Area & Direct Add Event Button -->
         <div class="gcal-auth-area">
           <div id="gcal-status" class="gcal-status-badge gcal-disconnected">
             <i class="ri-calendar-close-line"></i>
@@ -84,15 +84,16 @@
           <button id="gcal-signin-btn" class="gcal-btn gcal-btn-connect" onclick="handleGoogleSignIn()" style="display:none;">
             <i class="ri-google-fill"></i> 구글 캘린더 연동
           </button>
+          <button id="gcal-add-event-btn" class="gcal-btn gcal-btn-add" onclick="openGCalModal()" style="display:none; background: #4285F4; color: #fff;">
+            <i class="ri-add-line"></i> + 구글 일정 추가
+          </button>
           <button id="gcal-signout-btn" class="gcal-btn gcal-btn-disconnect" onclick="handleGoogleSignOut()" style="display:none;">
             <i class="ri-logout-box-line"></i> 연동 해제
           </button>
         </div>
         <div class="calendar-legend">
-          <span class="legend-item today-badge"><i class="ri-sun-fill"></i> 오늘 할 일</span>
-          <span class="legend-item urgent-badge"><i class="ri-fire-fill"></i> 쌓여있는 과제</span>
-          <span class="legend-item longterm-badge"><i class="ri-flag-fill"></i> 장기 목표</span>
-          <span class="legend-item gcal-badge"><i class="ri-google-fill"></i> 구글 캘린더</span>
+          <span class="legend-item gcal-badge" style="background:#e8f0fe; color:#1a56db; font-weight:700;"><i class="ri-google-fill"></i> 구글 캘린더 일정</span>
+          <span style="font-size: 0.8rem; color: #64748b; margin-left: 8px;">💡 날짜 셀 또는 '+ 구글 일정 추가' 버튼을 누르면 일정을 생성/수정/삭제할 수 있습니다.</span>
         </div>
       </div>
 
