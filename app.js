@@ -303,31 +303,81 @@ function handleGoogleSignOut() {
   showToast('구글 캘린더 연동이 해제됐습니다.', 'info');
 }
 
-// Fetch Google Calendar events for the currently displayed month
+// Fetch Google Calendar events for the currently displayed month (including Public Holidays & Subscribed Calendars)
 async function loadCalendarEventsForMonth() {
   if (!isGCalSignedIn()) {
     console.warn('[GCal] Not signed in, skipping event load');
     return;
   }
+
   const timeMin = new Date(currentCalYear, currentCalMonth, 1).toISOString();
   const timeMax = new Date(currentCalYear, currentCalMonth + 1, 0, 23, 59, 59).toISOString();
+
   try {
-    console.log(`[GCal] Fetching events ${timeMin} ~ ${timeMax}`);
-    const resp = await gapi.client.calendar.events.list({
-      calendarId: 'primary',
-      timeMin,
-      timeMax,
-      showDeleted: false,
-      singleEvents: true,
-      maxResults: 250,
-      orderBy: 'startTime',
+    console.log(`[GCal] Fetching all user & holiday calendars...`);
+    let targetCalendars = ['primary', 'ko.south_korea#holiday@group.v.calendar.google.com', 'ko.south_korea.official#holiday@group.v.calendar.google.com'];
+
+    // Query user's calendar list to get all active calendars (including holidays, shared calendars, etc.)
+    try {
+      const listResp = await gapi.client.calendar.calendarList.list();
+      if (listResp.result && listResp.result.items) {
+        const activeIds = listResp.result.items
+          .filter(c => c.selected !== false)
+          .map(c => c.id);
+        if (activeIds.length > 0) {
+          targetCalendars = Array.from(new Set([...targetCalendars, ...activeIds]));
+        }
+      }
+    } catch (listErr) {
+      console.warn('[GCal] Could not list secondary calendars, using fallback list:', listErr);
+    }
+
+    console.log('[GCal] Target calendars to load:', targetCalendars);
+
+    let allFetchedEvents = [];
+
+    // Fetch events for each calendar
+    for (const calId of targetCalendars) {
+      try {
+        const resp = await gapi.client.calendar.events.list({
+          calendarId: calId,
+          timeMin,
+          timeMax,
+          showDeleted: false,
+          singleEvents: true,
+          maxResults: 250,
+          orderBy: 'startTime',
+        });
+
+        const items = resp.result.items || [];
+        const isHolidayCal = calId.includes('holiday');
+
+        items.forEach(item => {
+          if (isHolidayCal) {
+            item.isHoliday = true;
+          }
+          allFetchedEvents.push(item);
+        });
+      } catch (err) {
+        // Skip optional secondary calendars if unauthorized or missing
+        if (calId === 'primary') {
+          console.error('[GCal] Primary calendar fetch failed:', err);
+        }
+      }
+    }
+
+    // De-duplicate events by ID
+    const eventMap = new Map();
+    allFetchedEvents.forEach(e => {
+      if (e && e.id) eventMap.set(e.id, e);
     });
-    gcalEvents = resp.result.items || [];
-    console.log(`[GCal] Loaded ${gcalEvents.length} events`);
+
+    gcalEvents = Array.from(eventMap.values());
+    console.log(`[GCal] Loaded total ${gcalEvents.length} events from ${targetCalendars.length} calendars`);
     renderCalendar();
   } catch (err) {
-    console.error('[GCal] Event load failed:', err);
-    const msg = err.result?.error?.message || '알 수 없는 오류';
+    console.error('[GCal] Event load error:', err);
+    const msg = err.result?.error?.message || err.message || '알 수 없는 오류';
     showToast(`구글 캘린더 로드 실패: ${msg}`, 'error');
   }
 }
@@ -636,6 +686,26 @@ function filterDashboardView(target) {
    Calendar View Rendering & Controls
    ========================================================================== */
 
+// Helper: Check if an event falls on a specific date (supports multi-day date ranges!)
+function isEventOnDate(event, cellDateStr) {
+  if (!event || !event.start) return false;
+
+  const startStr = (event.start.date || event.start.dateTime || '').substring(0, 10);
+  let endStr = (event.end?.date || event.end?.dateTime || '').substring(0, 10);
+
+  if (!startStr) return false;
+  if (!endStr) endStr = startStr;
+
+  // Google Calendar API all-day events use exclusive end.date
+  // e.g. Aug 29 ~ Aug 31 has start='2026-08-29', end='2026-09-01'
+  if (event.start.date && event.end?.date && endStr > startStr) {
+    return cellDateStr >= startStr && cellDateStr < endStr;
+  }
+
+  // Timed event or same-day event
+  return cellDateStr >= startStr && cellDateStr <= endStr;
+}
+
 function renderCalendar() {
   const titleEl = document.getElementById('cal-month-year-title');
   const daysBodyEl = document.getElementById('cal-days-body');
@@ -674,10 +744,7 @@ function renderCalendar() {
         handleGoogleSignIn();
         return;
       }
-      const dayEvents = gcalEvents.filter(e => {
-        const d = e.start?.date || (e.start?.dateTime || '').substring(0, 10);
-        return d === cellDateStr;
-      });
+      const dayEvents = gcalEvents.filter(e => isEventOnDate(e, cellDateStr));
 
       if (dayEvents.length > 0) {
         openDayDetailModal(cellDateStr, dayEvents);
@@ -689,18 +756,29 @@ function renderCalendar() {
     let cellHtml = `<span class="cal-day-num">${i}</span>`;
     cellHtml += `<div class="cal-events-list">`;
 
-    // Render ONLY Google Calendar events (strictly decoupled from app tasks)
+    // Render Google Calendar & Holiday events using multi-day range checker
     gcalEvents.forEach(event => {
-      const eventDate = event.start?.date || (event.start?.dateTime || '').substring(0, 10);
-      if (eventDate !== cellDateStr) return;
+      if (!isEventOnDate(event, cellDateStr)) return;
+
       const title = escapeHtml(event.summary || '(제목 없음)');
       const eventIdEscaped = escapeHtml(event.id);
-      cellHtml += `
-        <div class="cal-task-pill gcal-event" title="구글 캘린더: ${title}" onclick="event.stopPropagation(); handleGCalPillClick('${eventIdEscaped}')">
-          <i class="ri-google-fill" style="font-size:0.75em; flex-shrink:0; color:#4285F4;"></i>
-          <span>${title}</span>
-        </div>
-      `;
+      const isHoliday = event.isHoliday || (event.organizer?.email || '').includes('holiday') || (event.id || '').includes('holiday');
+
+      if (isHoliday) {
+        cellHtml += `
+          <div class="cal-task-pill gcal-holiday" title="공휴일: ${title}" onclick="event.stopPropagation(); handleGCalPillClick('${eventIdEscaped}')">
+            <i class="ri-flag-fill" style="font-size:0.75em; flex-shrink:0; color:#dc2626;"></i>
+            <span>${title}</span>
+          </div>
+        `;
+      } else {
+        cellHtml += `
+          <div class="cal-task-pill gcal-event" title="구글 캘린더: ${title}" onclick="event.stopPropagation(); handleGCalPillClick('${eventIdEscaped}')">
+            <i class="ri-google-fill" style="font-size:0.75em; flex-shrink:0; color:#4285F4;"></i>
+            <span>${title}</span>
+          </div>
+        `;
+      }
     });
 
     cellHtml += `</div>`;

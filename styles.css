@@ -1243,6 +1243,13 @@ body {
   color: #1a56db;
 }
 
+/* Public Holiday event pills */
+.cal-task-pill.gcal-holiday {
+  border-left: 3px solid #dc2626;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 /* Google Calendar legend badge */
 .gcal-badge {
   background: #e8f0fe;
