@@ -669,11 +669,20 @@ function renderCalendar() {
     const cell = document.createElement('div');
     cell.className = `cal-day-cell ${isToday ? 'is-today' : ''}`;
     cell.onclick = () => {
-      if (isGCalSignedIn()) {
-        openGCalModal(null, cellDateStr);
-      } else {
+      if (!isGCalSignedIn()) {
         showToast('구글 캘린더를 연동하면 일정을 추가/관리할 수 있습니다.', 'warning');
         handleGoogleSignIn();
+        return;
+      }
+      const dayEvents = gcalEvents.filter(e => {
+        const d = e.start?.date || (e.start?.dateTime || '').substring(0, 10);
+        return d === cellDateStr;
+      });
+
+      if (dayEvents.length > 0) {
+        openDayDetailModal(cellDateStr, dayEvents);
+      } else {
+        openGCalModal(null, cellDateStr);
       }
     };
 
@@ -1500,3 +1509,96 @@ async function handleGCalDeleteClick() {
     showToast('구글 캘린더 일정 삭제 실패: ' + (err.result?.error?.message || err.message || '오류 발생'), 'error');
   }
 }
+
+/* ==========================================================================
+   Google Calendar Day Detail Agenda Modal
+   ========================================================================== */
+
+let currentSelectedDayStr = null;
+
+function openDayDetailModal(dateStr, events = []) {
+  currentSelectedDayStr = dateStr;
+  const modal = document.getElementById('modal-gcal-day-detail');
+  const titleEl = document.getElementById('modal-day-detail-title');
+  const listEl = document.getElementById('day-detail-events-list');
+
+  if (!modal || !titleEl || !listEl) return;
+
+  const parts = dateStr.split('-');
+  titleEl.textContent = `${parts[0]}년 ${parseInt(parts[1], 10)}월 ${parseInt(parts[2], 10)}일 일정 (${events.length}개)`;
+
+  listEl.innerHTML = '';
+
+  events.forEach(event => {
+    const card = document.createElement('div');
+    card.className = 'day-detail-event-card';
+    
+    const summary = escapeHtml(event.summary || '(제목 없음)');
+    const desc = escapeHtml(event.description || '');
+    const descHtml = desc ? `<div class="day-detail-event-desc">${desc}</div>` : '';
+    const eventIdEscaped = escapeHtml(event.id);
+
+    card.innerHTML = `
+      <div class="day-detail-event-info">
+        <div class="day-detail-event-title">${summary}</div>
+        ${descHtml}
+      </div>
+      <div class="day-detail-event-actions">
+        <button class="btn-event-action edit" onclick="handleDayDetailEdit('${eventIdEscaped}')" title="수정">
+          <i class="ri-edit-line"></i> 수정
+        </button>
+        <button class="btn-event-action delete" onclick="handleDayDetailDelete('${eventIdEscaped}')" title="삭제">
+          <i class="ri-delete-bin-line"></i> 삭제
+        </button>
+      </div>
+    `;
+    listEl.appendChild(card);
+  });
+
+  modal.classList.add('active');
+}
+
+function closeDayDetailModal() {
+  const modal = document.getElementById('modal-gcal-day-detail');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleAddEventOnDayClick() {
+  closeDayDetailModal();
+  openGCalModal(null, currentSelectedDayStr || getTodayDateString());
+}
+
+function handleDayDetailEdit(eventId) {
+  closeDayDetailModal();
+  const eventObj = gcalEvents.find(e => e.id === eventId);
+  if (eventObj) {
+    openGCalModal(eventObj);
+  }
+}
+
+async function handleDayDetailDelete(eventId) {
+  const eventObj = gcalEvents.find(e => e.id === eventId);
+  const title = eventObj?.summary || '일정';
+  if (!confirm(`'${title}' 일정을 구글 캘린더에서 정말 삭제하시겠습니까?`)) return;
+
+  try {
+    await deleteGoogleCalendarEvent(eventId);
+    showToast('구글 캘린더 일정이 삭제되었습니다.', 'info');
+    await loadCalendarEventsForMonth();
+    
+    // Refresh day detail modal or close if empty
+    const remainingEvents = gcalEvents.filter(e => {
+      const d = e.start?.date || (e.start?.dateTime || '').substring(0, 10);
+      return d === currentSelectedDayStr;
+    });
+
+    if (remainingEvents.length > 0) {
+      openDayDetailModal(currentSelectedDayStr, remainingEvents);
+    } else {
+      closeDayDetailModal();
+    }
+  } catch (err) {
+    showToast('구글 캘린더 일정 삭제 실패: ' + (err.result?.error?.message || err.message || '오류 발생'), 'error');
+  }
+}
+
