@@ -155,22 +155,51 @@ function gisLoaded() {
   }
 }
 
-// Enable buttons once BOTH gapi and GIS are ready + AUTO CONNECT IF PREVIOUSLY LOGGED IN
+// Helper to save token in LocalStorage
+function saveGCalToken(token, expiresInSeconds = 3600) {
+  const expiresAt = Date.now() + (parseInt(expiresInSeconds, 10) || 3600) * 1000;
+  localStorage.setItem(STORAGE_KEY_GCAL_TOKEN, token);
+  localStorage.setItem(STORAGE_KEY_GCAL_EXPIRES, expiresAt.toString());
+  localStorage.setItem(STORAGE_KEY_AUTOCONNECT, 'true');
+}
+
+// Helper to clear token in LocalStorage
+function clearGCalToken() {
+  localStorage.removeItem(STORAGE_KEY_GCAL_TOKEN);
+  localStorage.removeItem(STORAGE_KEY_GCAL_EXPIRES);
+  localStorage.setItem(STORAGE_KEY_AUTOCONNECT, 'false');
+  if (gapiInited) gapi.client.setToken('');
+}
+
+// Enable buttons once BOTH gapi and GIS are ready + AUTO RESTORE TOKEN IF VALID
 function maybeEnableGCalUI() {
   if (!gapiInited || !gisInited) return;
-  updateGCalUI();
 
-  // Persistent Auth: Auto connect silently if previously logged in!
+  const savedToken = localStorage.getItem(STORAGE_KEY_GCAL_TOKEN);
+  const expiresAt = parseInt(localStorage.getItem(STORAGE_KEY_GCAL_EXPIRES) || '0', 10);
+
+  // 1. Instant Token Restore: If valid token exists in LocalStorage, reuse it immediately!
+  if (savedToken && Date.now() < expiresAt - 30000) {
+    gapi.client.setToken({ access_token: savedToken });
+    console.log('[GCal] Instant auto-login: restored valid token from LocalStorage!');
+    updateGCalUI();
+    loadCalendarEventsForMonth();
+    return;
+  }
+
+  // 2. Silent Refresh: If token expired but auto-connect enabled, attempt silent request
   if (localStorage.getItem(STORAGE_KEY_AUTOCONNECT) === 'true' && !isGCalSignedIn()) {
-    console.log('[GCal] Attempting silent persistent auth re-connect...');
+    console.log('[GCal] Token expired, attempting silent background refresh...');
     gcalTokenClient.callback = async (resp) => {
-      if (!resp.error) {
-        console.log('[GCal] Persistent silent auth re-connected successfully!');
+      if (!resp.error && resp.access_token) {
+        console.log('[GCal] Silent token refresh success!');
+        saveGCalToken(resp.access_token, resp.expires_in);
+        gapi.client.setToken({ access_token: resp.access_token });
         updateGCalUI();
         await loadCalendarEventsForMonth();
       } else {
-        console.warn('[GCal] Silent re-connect failed, resetting auto-connect flag:', resp.error);
-        localStorage.setItem(STORAGE_KEY_AUTOCONNECT, 'false');
+        console.warn('[GCal] Silent token refresh failed:', resp.error);
+        clearGCalToken();
         updateGCalUI();
       }
     };
@@ -178,7 +207,10 @@ function maybeEnableGCalUI() {
       gcalTokenClient.requestAccessToken({ prompt: '' });
     } catch (err) {
       console.error('[GCal] Error requesting silent token:', err);
+      updateGCalUI();
     }
+  } else {
+    updateGCalUI();
   }
 }
 
@@ -233,11 +265,14 @@ function handleGoogleSignIn() {
       showToast('구글 로그인 실패: ' + resp.error, 'error');
       return;
     }
-    localStorage.setItem(STORAGE_KEY_AUTOCONNECT, 'true'); // Save auto connect state
-    console.log('[GCal] OAuth success, token received');
-    updateGCalUI();
-    showToast('구글 캘린더 연동 완료! 이벤트를 불러옵니다...', 'success');
-    await loadCalendarEventsForMonth();
+    if (resp.access_token) {
+      saveGCalToken(resp.access_token, resp.expires_in);
+      gapi.client.setToken({ access_token: resp.access_token });
+      console.log('[GCal] OAuth success & token saved to LocalStorage');
+      updateGCalUI();
+      showToast('구글 캘린더 연동 완료! 이벤트를 불러옵니다...', 'success');
+      await loadCalendarEventsForMonth();
+    }
   };
   const existingToken = gapi.client.getToken();
   gcalTokenClient.requestAccessToken({ prompt: existingToken ? '' : 'consent' });
@@ -245,14 +280,17 @@ function handleGoogleSignIn() {
 
 // OAuth sign-out — revoke token and clear events
 function handleGoogleSignOut() {
-  localStorage.setItem(STORAGE_KEY_AUTOCONNECT, 'false'); // Clear auto connect state
-  const token = gapi.client.getToken();
-  if (token) {
-    google.accounts.oauth2.revoke(token.access_token, () => {
-      console.log('[GCal] Token revoked');
-    });
-    gapi.client.setToken('');
+  const token = gapi.client.getToken() || { access_token: localStorage.getItem(STORAGE_KEY_GCAL_TOKEN) };
+  if (token && token.access_token) {
+    try {
+      google.accounts.oauth2.revoke(token.access_token, () => {
+        console.log('[GCal] Token revoked');
+      });
+    } catch (e) {
+      console.error('[GCal] Revoke error:', e);
+    }
   }
+  clearGCalToken();
   gcalEvents = [];
   updateGCalUI();
   renderCalendar();
