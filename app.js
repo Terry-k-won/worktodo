@@ -8,6 +8,8 @@ const STORAGE_KEY_ITEMS = 'life_dashboard_items_v2';
 const STORAGE_KEY_URL = 'life_dashboard_script_url';
 const STORAGE_KEY_CLIENT_ID = 'google_calendar_client_id';
 const STORAGE_KEY_AUTOCONNECT = 'gcal_auto_connect';
+const STORAGE_KEY_GCAL_TOKEN = 'gcal_access_token';
+const STORAGE_KEY_GCAL_EXPIRES = 'gcal_token_expires_at';
 
 // Default Google Apps Script URL & Google Calendar Client ID
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzA5TKY3pMGv7wjRW6sSopFDXOjEON731j3D25WJzrVwt1ax7P361FqqO2JrYz7mSoTRA/exec';
