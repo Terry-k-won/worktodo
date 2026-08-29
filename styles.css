@@ -1245,6 +1245,50 @@ body {
   .calendar-month-controls h2 { font-size: 1.1rem; min-width: 110px; }
 }
 
+/* Google Calendar Event Color Picker Swatches */
+.gcal-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--r-sm);
+  margin-top: 4px;
+}
+
+.color-option {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-option input[type="radio"] {
+  display: none;
+}
+
+.color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-block;
+  transition: all 0.18s ease;
+  border: 2px solid transparent;
+  box-shadow: 0 1.5px 4px rgba(0,0,0,0.18);
+}
+
+.color-option input[type="radio"]:checked + .color-dot {
+  transform: scale(1.22);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2.5px #1e293b, 0 3px 8px rgba(0,0,0,0.25);
+}
+
+.color-dot:hover {
+  transform: scale(1.12);
+}
+
 /* ============================================================
    GOOGLE CALENDAR AUTH AREA
    ============================================================ */

@@ -41,6 +41,25 @@ let gcalEvents = []; // Cached Google Calendar events for current month
 const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const GCAL_DISCOVERY = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
 
+// Google Calendar 11 Standard Color Map
+const GCAL_COLOR_MAP = {
+  '1':  { border: '#7986cb', bg: '#e8eaf6', text: '#283593' }, // Lavender
+  '2':  { border: '#33b679', bg: '#e8f5e9', text: '#1b5e20' }, // Sage
+  '3':  { border: '#8e24aa', bg: '#f3e5f5', text: '#4a148c' }, // Grape
+  '4':  { border: '#e67c73', bg: '#fbe9e7', text: '#b71c1c' }, // Flamingo
+  '5':  { border: '#f6bf26', bg: '#fffde7', text: '#f57f17' }, // Banana
+  '6':  { border: '#f4511e', bg: '#fbe9e7', text: '#bf360c' }, // Tangerine
+  '7':  { border: '#039be5', bg: '#e1f5fe', text: '#01579b' }, // Peacock
+  '8':  { border: '#616161', bg: '#f5f5f5', text: '#212121' }, // Graphite
+  '9':  { border: '#3f51b5', bg: '#e8f0fe', text: '#1a56db' }, // Blueberry (Default)
+  '10': { border: '#0b8043', bg: '#e8f5e9', text: '#004d40' }, // Basil
+  '11': { border: '#d50000', bg: '#ffebee', text: '#b71c1c' }, // Tomato
+};
+
+function getGCalEventColor(colorId) {
+  return GCAL_COLOR_MAP[String(colorId)] || GCAL_COLOR_MAP['9'];
+}
+
 // Category Name Mapping
 const CATEGORY_NAMES = {
   today: '오늘 할 일',
@@ -834,9 +853,10 @@ function renderCalendar() {
           </div>
         `;
       } else {
+        const colorStyle = getGCalEventColor(event.colorId);
         cellHtml += `
-          <div class="cal-task-pill gcal-event" title="구글 캘린더: ${title}" onclick="event.stopPropagation(); handleGCalPillClick('${eventIdEscaped}')">
-            <i class="ri-google-fill" style="font-size:0.75em; flex-shrink:0; color:#4285F4;"></i>
+          <div class="cal-task-pill gcal-event" title="구글 캘린더: ${title}" style="border-left-color: ${colorStyle.border}; background: ${colorStyle.bg}; color: ${colorStyle.text};" onclick="event.stopPropagation(); handleGCalPillClick('${eventIdEscaped}')">
+            <i class="ri-google-fill" style="font-size:0.75em; flex-shrink:0; color:${colorStyle.border};"></i>
             <span>${title}</span>
           </div>
         `;
@@ -1568,6 +1588,10 @@ function openGCalModal(eventObj = null, defaultDateStr = null) {
     startDateInput.value = startDate;
     endDateInput.value = endDate;
     descInput.value = eventObj.description || '';
+
+    const colorVal = String(eventObj.colorId || '9');
+    const colorRadio = document.querySelector(`input[name="gcal-color"][value="${colorVal}"]`);
+    if (colorRadio) colorRadio.checked = true;
     
     deleteBtn.style.display = 'flex';
   } else {
@@ -1578,6 +1602,9 @@ function openGCalModal(eventObj = null, defaultDateStr = null) {
     startDateInput.value = defaultDateStr || getTodayDateString();
     endDateInput.value = '';
     descInput.value = '';
+
+    const defaultRadio = document.querySelector('input[name="gcal-color"][value="9"]');
+    if (defaultRadio) defaultRadio.checked = true;
     
     deleteBtn.style.display = 'none';
   }
@@ -1612,6 +1639,9 @@ async function handleGCalFormSubmit(e) {
   const startDate = document.getElementById('gcal-event-startdate').value;
   const endDate = document.getElementById('gcal-event-enddate').value || startDate;
   const description = document.getElementById('gcal-event-description').value.trim();
+  
+  const selectedColorEl = document.querySelector('input[name="gcal-color"]:checked');
+  const colorId = selectedColorEl ? selectedColorEl.value : '9';
 
   if (!summary || !startDate) return;
 
@@ -1620,6 +1650,7 @@ async function handleGCalFormSubmit(e) {
     description,
     start: { date: startDate },
     end: { date: endDate },
+    colorId: colorId,
   };
 
   try {
@@ -1675,6 +1706,9 @@ function openDayDetailModal(dateStr, events = []) {
   events.forEach(event => {
     const card = document.createElement('div');
     card.className = 'day-detail-event-card';
+    
+    const colorStyle = getGCalEventColor(event.colorId);
+    card.style.borderLeftColor = colorStyle.border;
     
     const summary = escapeHtml(event.summary || '(제목 없음)');
     const desc = escapeHtml(event.description || '');

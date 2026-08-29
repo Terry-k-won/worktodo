@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Remix Icon -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v12" />
+  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v13" />
 </head>
 <body>
   <div id="app" class="app-container">
@@ -328,7 +328,25 @@
 
         <div class="form-group">
           <label for="gcal-event-description">설명 / 메모 (선택)</label>
-          <textarea id="gcal-event-description" rows="3" placeholder="구글 캘린더 일정에 포함될 세부 설명" class="form-control"></textarea>
+          <textarea id="gcal-event-description" rows="2" placeholder="구글 캘린더 일정에 포함될 세부 설명" class="form-control"></textarea>
+        </div>
+
+        <!-- Event Color Selector (Google Calendar 11 Standard Colors) -->
+        <div class="form-group">
+          <label>일정 색상 선택</label>
+          <div class="gcal-color-picker" id="gcal-color-picker">
+            <label class="color-option"><input type="radio" name="gcal-color" value="1" /><span class="color-dot" style="background:#7986cb;" title="라벤더 (연보라)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="2" /><span class="color-dot" style="background:#33b679;" title="세이지 (연초록)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="3" /><span class="color-dot" style="background:#8e24aa;" title="포도 (보라)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="4" /><span class="color-dot" style="background:#e67c73;" title="플라밍고 (핑크)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="5" /><span class="color-dot" style="background:#f6bf26;" title="바나나 (노랑)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="6" /><span class="color-dot" style="background:#f4511e;" title="귤 (주황)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="7" /><span class="color-dot" style="background:#039be5;" title="민트/공작 (하늘파랑)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="8" /><span class="color-dot" style="background:#616161;" title="흑연 (회색)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="9" checked /><span class="color-dot" style="background:#3f51b5;" title="블루베리 (파랑)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="10" /><span class="color-dot" style="background:#0b8043;" title="바질 (진초록)"></span></label>
+            <label class="color-option"><input type="radio" name="gcal-color" value="11" /><span class="color-dot" style="background:#d50000;" title="토마토 (빨강)"></span></label>
+          </div>
         </div>
 
         <div class="modal-footer space-between">
