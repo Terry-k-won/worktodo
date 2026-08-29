@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Remix Icon -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260829_gcal" />
+  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v3" />
 </head>
 <body>
   <div id="app" class="app-container">
@@ -297,6 +297,51 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btn-cancel-item">취소</button>
           <button type="submit" class="btn btn-primary" id="btn-save-item">저장하기</button>
+        </div>
+      </form>
+    </div>
+  <!-- Modal: Google Calendar Event Form (Create / Edit / Delete) -->
+  <div class="modal-overlay" id="modal-gcal-event">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <i class="ri-google-fill" style="color: #4285F4; font-size: 1.3rem;"></i>
+          <h3 id="modal-gcal-title">구글 캘린더 일정 관리</h3>
+        </div>
+        <button class="btn-close-modal" onclick="closeGCalModal()"><i class="ri-close-line"></i></button>
+      </div>
+      <form id="form-gcal-event" onsubmit="handleGCalFormSubmit(event)">
+        <input type="hidden" id="gcal-event-id" value="" />
+        
+        <div class="form-group">
+          <label for="gcal-event-summary">일정 제목</label>
+          <input type="text" id="gcal-event-summary" placeholder="구글 캘린더에 등록할 일정 제목" required class="form-control" autocomplete="off" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col">
+            <label for="gcal-event-startdate">시작일</label>
+            <input type="date" id="gcal-event-startdate" required class="form-control" />
+          </div>
+          <div class="form-group col">
+            <label for="gcal-event-enddate">종료일 (선택)</label>
+            <input type="date" id="gcal-event-enddate" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="gcal-event-description">설명 / 메모 (선택)</label>
+          <textarea id="gcal-event-description" rows="3" placeholder="구글 캘린더 일정에 포함될 세부 설명" class="form-control"></textarea>
+        </div>
+
+        <div class="modal-footer space-between">
+          <button type="button" class="btn btn-danger-ghost" id="btn-delete-gcal-event" onclick="handleGCalDeleteClick()" style="display: none;">
+            <i class="ri-delete-bin-line"></i> 일정 삭제
+          </button>
+          <div style="display: flex; gap: 8px; margin-left: auto;">
+            <button type="button" class="btn btn-secondary" onclick="closeGCalModal()">취소</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-gcal-event" style="background: #4285F4;">구글 캘린더에 저장</button>
+          </div>
         </div>
       </form>
     </div>
