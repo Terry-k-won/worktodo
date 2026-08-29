@@ -126,18 +126,19 @@ function getInitialDemoData() {
 function gapiLoaded() {
   gapi.load('client', async () => {
     try {
-      await gapi.client.init({
-        discoveryDocs: [GCAL_DISCOVERY],
-      });
+      // init with no args first, then explicitly load Calendar v3
+      await gapi.client.init({});
+      await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest');
       gapiInited = true;
+      console.log('[GCal] gapi + Calendar API loaded OK');
       maybeEnableGCalUI();
     } catch (err) {
-      console.error('gapi init error:', err);
+      console.error('[GCal] gapi init error:', err);
     }
   });
 }
 
-// Called by GIS script onload (set as callback via script)
+// Called by GIS (accounts.google.com/gsi/client) onload
 function gisLoaded() {
   try {
     gcalTokenClient = google.accounts.oauth2.initTokenClient({
@@ -146,9 +147,10 @@ function gisLoaded() {
       callback: '',
     });
     gisInited = true;
+    console.log('[GCal] GIS token client initialized OK');
     maybeEnableGCalUI();
   } catch (err) {
-    console.error('GIS init error:', err);
+    console.error('[GCal] GIS init error:', err);
   }
 }
 
@@ -158,11 +160,12 @@ function maybeEnableGCalUI() {
   updateGCalUI();
 }
 
-// Check if user is currently signed in
+// Safe check: is user currently signed in with a valid token?
 function isGCalSignedIn() {
   try {
+    if (!gapiInited) return false;
     const token = gapi.client.getToken();
-    return token !== null && token.access_token;
+    return token !== null && !!token.access_token;
   } catch {
     return false;
   }
@@ -228,12 +231,16 @@ function handleGoogleSignOut() {
   showToast('구글 캘린더 연동이 해제됐습니다.', 'info');
 }
 
-// Fetch events for the currently displayed month
+// Fetch Google Calendar events for the currently displayed month
 async function loadCalendarEventsForMonth() {
-  if (!isGCalSignedIn()) return;
+  if (!isGCalSignedIn()) {
+    console.warn('[GCal] Not signed in, skipping event load');
+    return;
+  }
   const timeMin = new Date(currentCalYear, currentCalMonth, 1).toISOString();
   const timeMax = new Date(currentCalYear, currentCalMonth + 1, 0, 23, 59, 59).toISOString();
   try {
+    console.log(`[GCal] Fetching events ${timeMin} ~ ${timeMax}`);
     const resp = await gapi.client.calendar.events.list({
       calendarId: 'primary',
       timeMin,
@@ -244,10 +251,12 @@ async function loadCalendarEventsForMonth() {
       orderBy: 'startTime',
     });
     gcalEvents = resp.result.items || [];
+    console.log(`[GCal] Loaded ${gcalEvents.length} events`);
     renderCalendar();
   } catch (err) {
-    console.error('캘린더 이벤트 로드 실패:', err);
-    showToast('구글 캘린더 이벤트 로드 실패', 'error');
+    console.error('[GCal] Event load failed:', err);
+    const msg = err.result?.error?.message || '알 수 없는 오류';
+    showToast(`구글 캘린더 로드 실패: ${msg}`, 'error');
   }
 }
 
@@ -274,7 +283,7 @@ async function createCalendarEvent(item) {
   }
 }
 
-// Delete a Google Calendar event
+// Delete a Google Calendar event by its ID
 async function deleteCalendarEvent(gcalEventId) {
   if (!isGCalSignedIn() || !gcalEventId) return;
   try {
@@ -282,8 +291,11 @@ async function deleteCalendarEvent(gcalEventId) {
       calendarId: 'primary',
       eventId: gcalEventId,
     });
+    console.log('[GCal] Event deleted:', gcalEventId);
   } catch (err) {
-    console.error('구글 캘린더 이벤트 삭제 실패:', err);
+    if (err.status !== 410) { // 410 Gone = already deleted, ignore
+      console.error('[GCal] Event deletion failed:', err);
+    }
   }
 }
 

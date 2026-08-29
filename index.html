@@ -11,9 +11,6 @@
   <!-- Remix Icon -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20260829_gcal" />
-  <!-- Google Identity Services & API Client -->
-  <script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
-  <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
 </head>
 <body>
   <div id="app" class="app-container">
@@ -392,5 +389,8 @@
   <div id="toast-container" class="toast-container"></div>
 
   <script src="app.js"></script>
+  <!-- Load Google libraries AFTER app.js so callbacks are defined -->
+  <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
