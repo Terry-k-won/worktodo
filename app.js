@@ -650,11 +650,6 @@ function filterDashboardView(target) {
   if (calContainer) calContainer.style.display = 'none';
   if (wrapper) wrapper.style.display = '';
 
-  // Update nav tab active state
-  document.querySelectorAll('.category-nav .nav-tab').forEach(tab => {
-    tab.classList.toggle('active', tab.getAttribute('data-target') === target);
-  });
-
   if (target === 'all') {
     wrapper.className = 'dashboard-wrapper mode-all';
     if (categorySidebar) categorySidebar.style.display = 'none';
@@ -680,6 +675,73 @@ function filterDashboardView(target) {
   }
 
   renderRightSidebar();
+}
+
+/* ==========================================================================
+   Redesigned Navigation Dropdown & View Handlers
+   ========================================================================== */
+
+function toggleNavDropdown(e) {
+  if (e) e.stopPropagation();
+  const wrapper = document.getElementById('nav-dropdown-wrapper');
+  if (wrapper) wrapper.classList.toggle('open');
+}
+
+function selectNavFilter(target, label, iconClass) {
+  const wrapper = document.getElementById('nav-dropdown-wrapper');
+  if (wrapper) wrapper.classList.remove('open');
+
+  // Update dropdown button label & icon
+  const labelEl = document.getElementById('nav-dropdown-label');
+  const iconEl = document.getElementById('nav-dropdown-icon');
+  const btnEl = document.getElementById('nav-dropdown-btn');
+  const calBtn = document.getElementById('nav-calendar-btn');
+
+  if (labelEl) labelEl.textContent = label;
+  if (iconEl) iconEl.className = iconClass;
+  if (btnEl) btnEl.classList.add('active');
+  if (calBtn) calBtn.classList.remove('active');
+
+  // Update active state in dropdown menu items
+  document.querySelectorAll('.nav-dropdown-item').forEach(item => {
+    item.classList.toggle('active', item.getAttribute('data-target') === target);
+  });
+
+  filterDashboardView(target);
+}
+
+function selectNavCalendar(btnEl) {
+  const wrapper = document.getElementById('nav-dropdown-wrapper');
+  if (wrapper) wrapper.classList.remove('open');
+
+  showCalendarView(btnEl);
+}
+
+// Close navigation dropdown when clicking anywhere outside
+document.addEventListener('click', (e) => {
+  const wrapper = document.getElementById('nav-dropdown-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    wrapper.classList.remove('open');
+  }
+});
+
+// Dedicated Calendar Show/Hide
+function showCalendarView(btnEl) {
+  isCalendarView = true;
+  currentFilter = 'calendar';
+
+  const dropdownBtn = document.getElementById('nav-dropdown-btn');
+  const calBtn = document.getElementById('nav-calendar-btn');
+  if (dropdownBtn) dropdownBtn.classList.remove('active');
+  if (calBtn) calBtn.classList.add('active');
+
+  // Show calendar, hide dashboard
+  const cal = document.getElementById('calendar-container');
+  const dash = document.getElementById('dashboard-wrapper');
+  if (cal) { cal.style.display = 'flex'; cal.style.flexDirection = 'column'; }
+  if (dash) dash.style.display = 'none';
+
+  renderCalendar();
 }
 
 /* ==========================================================================
@@ -827,7 +889,10 @@ function goCalToday() {
 }
 
 function switchCategoryView(target) {
-  filterDashboardView(target);
+  const meta = CATEGORY_META[target];
+  const label = meta ? meta.name : '전체보기';
+  const icon = meta ? meta.icon : 'ri-dashboard-line';
+  selectNavFilter(target, label, icon);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 

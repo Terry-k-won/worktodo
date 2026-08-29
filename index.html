@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Remix Icon -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v11" />
+  <link rel="stylesheet" href="styles.css?v=20260829_gcal_v12" />
 </head>
 <body>
   <div id="app" class="app-container">
@@ -45,32 +45,42 @@
       </div>
     </header>
 
-    <!-- Navigation / Category Tabs (Mobile & Quick Filter) -->
-    <nav class="category-nav">
-      <button class="nav-tab active" data-target="all">
-        <i class="ri-dashboard-line"></i> 전체보기
-      </button>
-      <button class="nav-tab" data-target="today">
-        <i class="ri-sun-line"></i> 오늘 할 일
-      </button>
-      <button class="nav-tab" data-target="urgent">
-        <i class="ri-fire-line"></i> 당장 쌓인 과제
-      </button>
-      <button class="nav-tab" data-target="longterm">
-        <i class="ri-flag-line"></i> 장기 목표
-      </button>
-      <button class="nav-tab" data-target="skills">
-        <i class="ri-tools-line"></i> 개발할 능력
-      </button>
-      <button class="nav-tab" data-target="weakness">
-        <i class="ri-shield-flash-line"></i> 나의 부족함
-      </button>
-      <button class="nav-tab" data-target="calendar" onclick="showCalendarView(this)">
+    <!-- Navigation / Category Filter Bar (Redesigned with Vertical Dropdown & Calendar Tab) -->
+    <nav class="category-nav-redesigned">
+      <div class="nav-dropdown-wrapper" id="nav-dropdown-wrapper">
+        <button class="nav-dropdown-btn active" id="nav-dropdown-btn" onclick="toggleNavDropdown(event)">
+          <i class="ri-dashboard-line" id="nav-dropdown-icon"></i>
+          <span id="nav-dropdown-label">전체보기</span>
+          <i class="ri-arrow-down-s-line dropdown-arrow" id="nav-dropdown-arrow"></i>
+        </button>
+        <div class="nav-dropdown-menu" id="nav-dropdown-menu">
+          <button class="nav-dropdown-item active" data-target="all" onclick="selectNavFilter('all', '전체보기', 'ri-dashboard-line')">
+            <i class="ri-dashboard-line"></i> 전체보기
+          </button>
+          <button class="nav-dropdown-item" data-target="today" onclick="selectNavFilter('today', '오늘 할 일', 'ri-sun-line')">
+            <i class="ri-sun-line"></i> 오늘 할 일
+          </button>
+          <button class="nav-dropdown-item" data-target="urgent" onclick="selectNavFilter('urgent', '당장 쌓인 과제', 'ri-fire-line')">
+            <i class="ri-fire-line"></i> 당장 쌓인 과제
+          </button>
+          <button class="nav-dropdown-item" data-target="longterm" onclick="selectNavFilter('longterm', '장기 목표', 'ri-flag-line')">
+            <i class="ri-flag-line"></i> 장기 목표
+          </button>
+          <button class="nav-dropdown-item" data-target="skills" onclick="selectNavFilter('skills', '개발할 능력', 'ri-tools-line')">
+            <i class="ri-tools-line"></i> 개발할 능력
+          </button>
+          <button class="nav-dropdown-item" data-target="weakness" onclick="selectNavFilter('weakness', '나의 부족함', 'ri-shield-flash-line')">
+            <i class="ri-shield-flash-line"></i> 나의 부족함
+          </button>
+        </div>
+      </div>
+
+      <button class="calendar-tab-btn" id="nav-calendar-btn" onclick="selectNavCalendar(this)">
         <i class="ri-calendar-event-line"></i> 📅 캘린더 관리
       </button>
     </nav>
 
-    <!-- Interactive Calendar Section (Standalone Large View) -->
+    <!-- Interactive Calendar Section (Clean Minimal View) -->
     <section class="calendar-wrapper-card" id="calendar-container" style="display: none;">
       <div class="calendar-header-bar">
         <div class="calendar-month-controls">
@@ -78,26 +88,6 @@
           <h2 id="cal-month-year-title">2026년 8월</h2>
           <button class="calendar-nav-btn" id="cal-btn-next" title="다음 달"><i class="ri-arrow-right-s-line"></i></button>
           <button class="calendar-nav-btn today-btn" id="cal-btn-today">오늘</button>
-        </div>
-        <!-- Google Calendar Auth Area & Direct Add Event Button -->
-        <div class="gcal-auth-area">
-          <div id="gcal-status" class="gcal-status-badge gcal-disconnected">
-            <i class="ri-calendar-close-line"></i>
-            <span>구글 캘린더 미연동</span>
-          </div>
-          <button id="gcal-signin-btn" class="gcal-btn gcal-btn-connect" onclick="handleGoogleSignIn()" style="display:none;">
-            <i class="ri-google-fill"></i> 구글 캘린더 연동
-          </button>
-          <button id="gcal-add-event-btn" class="gcal-btn gcal-btn-add" onclick="openGCalModal()" style="display:none; background: #4285F4; color: #fff;">
-            <i class="ri-add-line"></i> + 구글 일정 추가
-          </button>
-          <button id="gcal-signout-btn" class="gcal-btn gcal-btn-disconnect" onclick="handleGoogleSignOut()" style="display:none;">
-            <i class="ri-logout-box-line"></i> 연동 해제
-          </button>
-        </div>
-        <div class="calendar-legend">
-          <span class="legend-item gcal-badge" style="background:#e8f0fe; color:#1a56db; font-weight:700;"><i class="ri-google-fill"></i> 구글 캘린더 일정</span>
-          <span style="font-size: 0.8rem; color: #64748b; margin-left: 8px;">💡 날짜 셀 또는 '+ 구글 일정 추가' 버튼을 누르면 일정을 생성/수정/삭제할 수 있습니다.</span>
         </div>
       </div>
 
