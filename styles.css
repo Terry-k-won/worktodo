@@ -1054,3 +1054,86 @@ body {
   .calendar-month-controls h2 { font-size: 1.1rem; min-width: 110px; }
 }
 
+/* ============================================================
+   GOOGLE CALENDAR AUTH AREA
+   ============================================================ */
+.gcal-auth-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gcal-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.gcal-disconnected {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.gcal-connected {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+.gcal-loading {
+  background: #f8fafc;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+
+.gcal-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.gcal-btn-connect {
+  background: var(--green-dark);
+  color: #fff;
+}
+.gcal-btn-connect:hover {
+  background: var(--green-vibrant);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(42,124,19,0.25);
+}
+.gcal-btn-disconnect {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.gcal-btn-disconnect:hover {
+  background: #fecaca;
+}
+
+/* Google Calendar event pills */
+.cal-task-pill.gcal-event {
+  border-left: 3px solid #4285F4;
+  background: #e8f0fe;
+  color: #1a56db;
+}
+
+/* Google Calendar legend badge */
+.gcal-badge {
+  background: #e8f0fe;
+  color: #1a56db;
+}
+
+/* Calendar header bar flex wrap for auth area */
+.calendar-header-bar {
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+

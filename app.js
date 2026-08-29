@@ -30,6 +30,14 @@ let currentArchiveTab = 'completed'; // 'completed' or 'deleted'
 let currentCalYear = new Date().getFullYear();
 let currentCalMonth = new Date().getMonth(); // 0-indexed (0=Jan..11=Dec)
 
+// Google Calendar API State
+let gapiInited = false;
+let gisInited = false;
+let gcalTokenClient = null;
+let gcalEvents = []; // Cached Google Calendar events for current month
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const GCAL_DISCOVERY = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+
 // Category Name Mapping
 const CATEGORY_NAMES = {
   today: '오늘 할 일',
@@ -108,6 +116,175 @@ function getPriorityValue(prio) {
 
 function getInitialDemoData() {
   return [];
+}
+
+/* ==========================================================================
+   Google Calendar API Integration
+   ========================================================================== */
+
+// Called by gapi.js onload
+function gapiLoaded() {
+  gapi.load('client', async () => {
+    try {
+      await gapi.client.init({
+        discoveryDocs: [GCAL_DISCOVERY],
+      });
+      gapiInited = true;
+      maybeEnableGCalUI();
+    } catch (err) {
+      console.error('gapi init error:', err);
+    }
+  });
+}
+
+// Called by GIS script onload (set as callback via script)
+function gisLoaded() {
+  try {
+    gcalTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: DEFAULT_CLIENT_ID,
+      scope: GCAL_SCOPE,
+      callback: '',
+    });
+    gisInited = true;
+    maybeEnableGCalUI();
+  } catch (err) {
+    console.error('GIS init error:', err);
+  }
+}
+
+// Enable buttons once both gapi and GIS are ready
+function maybeEnableGCalUI() {
+  if (!gapiInited || !gisInited) return;
+  updateGCalUI();
+}
+
+// Check if user is currently signed in
+function isGCalSignedIn() {
+  try {
+    const token = gapi.client.getToken();
+    return token !== null && token.access_token;
+  } catch {
+    return false;
+  }
+}
+
+// Update the auth area UI
+function updateGCalUI() {
+  const statusEl = document.getElementById('gcal-status');
+  const signinBtn = document.getElementById('gcal-signin-btn');
+  const signoutBtn = document.getElementById('gcal-signout-btn');
+  if (!statusEl || !signinBtn || !signoutBtn) return;
+
+  if (!gapiInited || !gisInited) {
+    statusEl.className = 'gcal-status-badge gcal-loading';
+    statusEl.innerHTML = '<i class="ri-loader-4-line spin-icon"></i><span>초기화 중...</span>';
+    signinBtn.style.display = 'none';
+    signoutBtn.style.display = 'none';
+    return;
+  }
+
+  if (isGCalSignedIn()) {
+    statusEl.className = 'gcal-status-badge gcal-connected';
+    statusEl.innerHTML = '<i class="ri-checkbox-circle-fill"></i><span>구글 캘린더 연동됨</span>';
+    signinBtn.style.display = 'none';
+    signoutBtn.style.display = 'flex';
+  } else {
+    statusEl.className = 'gcal-status-badge gcal-disconnected';
+    statusEl.innerHTML = '<i class="ri-calendar-close-line"></i><span>구글 캘린더 미연동</span>';
+    signinBtn.style.display = 'flex';
+    signoutBtn.style.display = 'none';
+  }
+}
+
+// OAuth sign-in
+function handleGoogleSignIn() {
+  if (!gapiInited || !gisInited || !gcalTokenClient) {
+    showToast('Google API가 아직 준비 중입니다. 잠시 후 다시 시도해주세요.', 'warning');
+    return;
+  }
+  gcalTokenClient.callback = async (resp) => {
+    if (resp.error) {
+      showToast('구글 로그인 실패: ' + resp.error, 'error');
+      return;
+    }
+    updateGCalUI();
+    showToast('구글 캘린더 연동 완료!', 'success');
+    await loadCalendarEventsForMonth();
+  };
+  const currentToken = gapi.client.getToken();
+  gcalTokenClient.requestAccessToken({ prompt: currentToken ? '' : 'consent' });
+}
+
+// OAuth sign-out
+function handleGoogleSignOut() {
+  const token = gapi.client.getToken();
+  if (token) {
+    google.accounts.oauth2.revoke(token.access_token, () => {});
+    gapi.client.setToken('');
+  }
+  gcalEvents = [];
+  updateGCalUI();
+  renderCalendar();
+  showToast('구글 캘린더 연동이 해제됐습니다.', 'info');
+}
+
+// Fetch events for the currently displayed month
+async function loadCalendarEventsForMonth() {
+  if (!isGCalSignedIn()) return;
+  const timeMin = new Date(currentCalYear, currentCalMonth, 1).toISOString();
+  const timeMax = new Date(currentCalYear, currentCalMonth + 1, 0, 23, 59, 59).toISOString();
+  try {
+    const resp = await gapi.client.calendar.events.list({
+      calendarId: 'primary',
+      timeMin,
+      timeMax,
+      showDeleted: false,
+      singleEvents: true,
+      maxResults: 250,
+      orderBy: 'startTime',
+    });
+    gcalEvents = resp.result.items || [];
+    renderCalendar();
+  } catch (err) {
+    console.error('캘린더 이벤트 로드 실패:', err);
+    showToast('구글 캘린더 이벤트 로드 실패', 'error');
+  }
+}
+
+// Create a Google Calendar event when a new task with dueDate is added
+async function createCalendarEvent(item) {
+  if (!isGCalSignedIn() || !item.dueDate) return null;
+  try {
+    const dateStr = String(item.dueDate).substring(0, 10);
+    const event = {
+      summary: item.content,
+      description: item.note ? `[내일의 오늘] ${item.note}` : '[내일의 오늘] 앱에서 추가된 할 일',
+      start: { date: dateStr },
+      end: { date: dateStr },
+      colorId: item.category === 'urgent' ? '11' : item.category === 'longterm' ? '9' : '2',
+    };
+    const resp = await gapi.client.calendar.events.insert({
+      calendarId: 'primary',
+      resource: event,
+    });
+    return resp.result.id;
+  } catch (err) {
+    console.error('구글 캘린더 이벤트 생성 실패:', err);
+    return null;
+  }
+}
+
+// Delete a Google Calendar event
+async function deleteCalendarEvent(gcalEventId) {
+  if (!isGCalSignedIn() || !gcalEventId) return;
+  try {
+    await gapi.client.calendar.events.delete({
+      calendarId: 'primary',
+      eventId: gcalEventId,
+    });
+  } catch (err) {
+    console.error('구글 캘린더 이벤트 삭제 실패:', err);
+  }
 }
 
 /* ==========================================================================
@@ -389,7 +566,7 @@ function renderCalendar() {
 
     let cellHtml = `<span class="cal-day-num">${i}</span>`;
 
-    // Filter active items due on this date
+    // App tasks on this date
     const dayItems = appData.items.filter(item => {
       if (item.status !== 'active' || !item.dueDate) return false;
       return String(item.dueDate).trim().startsWith(cellDateStr);
@@ -401,6 +578,19 @@ function renderCalendar() {
       cellHtml += `
         <div class="cal-task-pill ${catClass}" title="${escapeHtml(item.content)} (${meta.name})" onclick="event.stopPropagation(); openEditModal('${item.id}')">
           <span>${escapeHtml(item.content)}</span>
+        </div>
+      `;
+    });
+
+    // Google Calendar events on this date
+    gcalEvents.forEach(event => {
+      const eventDate = event.start?.date || (event.start?.dateTime || '').substring(0, 10);
+      if (eventDate !== cellDateStr) return;
+      const title = escapeHtml(event.summary || '(제목 없음)');
+      cellHtml += `
+        <div class="cal-task-pill gcal-event" title="구글 캘린더: ${title}" onclick="event.stopPropagation();">
+          <i class="ri-google-fill" style="font-size:0.7em; flex-shrink:0;"></i>
+          <span>${title}</span>
         </div>
       `;
     });
@@ -429,14 +619,24 @@ function changeCalMonth(offset) {
     currentCalMonth = 11;
     currentCalYear -= 1;
   }
-  renderCalendar();
+  if (isGCalSignedIn()) {
+    gcalEvents = [];
+    loadCalendarEventsForMonth(); // async, will call renderCalendar when done
+  } else {
+    renderCalendar();
+  }
 }
 
 function goCalToday() {
   const now = new Date();
   currentCalYear = now.getFullYear();
   currentCalMonth = now.getMonth();
-  renderCalendar();
+  if (isGCalSignedIn()) {
+    gcalEvents = [];
+    loadCalendarEventsForMonth();
+  } else {
+    renderCalendar();
+  }
 }
 
 function switchCategoryView(target) {
@@ -598,12 +798,27 @@ function handleItemFormSubmit(e) {
       priority,
       dueDate,
       note,
+      gcalEventId: null, // Will be set after Google Calendar event creation
       status: 'active',
       createdAt: now,
       updatedAt: now
     };
     appData.items.unshift(newItem);
     showToast('새 항목이 등록되었습니다.', 'success');
+
+    // Async: create Google Calendar event and store the eventId
+    if (dueDate && isGCalSignedIn()) {
+      createCalendarEvent(newItem).then(gcalEventId => {
+        if (gcalEventId) {
+          const idx = appData.items.findIndex(i => i.id === newItem.id);
+          if (idx !== -1) {
+            appData.items[idx].gcalEventId = gcalEventId;
+            saveData();
+            if (isGCalSignedIn()) loadCalendarEventsForMonth();
+          }
+        }
+      });
+    }
   }
 
   saveData();
@@ -685,6 +900,10 @@ function restoreItem(id) {
 }
 
 function permanentlyDeleteItem(id) {
+  const item = appData.items.find(i => i.id === id);
+  if (item && item.gcalEventId) {
+    deleteCalendarEvent(item.gcalEventId);
+  }
   appData.items = appData.items.filter(i => i.id !== id);
 
   saveData();
