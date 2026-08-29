@@ -930,10 +930,6 @@ function restoreItem(id) {
 }
 
 function permanentlyDeleteItem(id) {
-  const item = appData.items.find(i => i.id === id);
-  if (item && item.gcalEventId) {
-    deleteCalendarEvent(item.gcalEventId);
-  }
   appData.items = appData.items.filter(i => i.id !== id);
 
   saveData();
