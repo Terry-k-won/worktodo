@@ -556,36 +556,7 @@ function renderAll() {
   }
 }
 
-// ---- Dedicated Calendar Show/Hide ----
-function showCalendarView(btnEl) {
-  isCalendarView = true;
-  currentFilter = 'calendar';
 
-  // Update nav active state
-  document.querySelectorAll('.category-nav .nav-tab').forEach(t => t.classList.remove('active'));
-  if (btnEl) btnEl.classList.add('active');
-
-  // Show calendar, hide dashboard
-  const cal = document.getElementById('calendar-container');
-  const dash = document.getElementById('dashboard-wrapper');
-  if (cal) { cal.style.display = 'flex'; cal.style.flexDirection = 'column'; }
-  if (dash) dash.style.display = 'none';
-
-  renderCalendar();
-}
-
-function showDashboardView(target) {
-  isCalendarView = false;
-  currentFilter = target;
-
-  // Hide calendar, show dashboard
-  const cal = document.getElementById('calendar-container');
-  const dash = document.getElementById('dashboard-wrapper');
-  if (cal) cal.style.display = 'none';
-  if (dash) dash.style.display = '';
-
-  filterDashboardView(target);
-}
 
 function renderCategoryLists() {
   const categories = ['today', 'urgent', 'longterm', 'skills', 'weakness'];
@@ -786,36 +757,6 @@ function isEventOnDate(event, cellDateStr) {
   // Timed event or same-day event
   return cellDateStr >= startStr && cellDateStr <= endStr;
 }
-
-function renderCalendar() {
-  const titleEl = document.getElementById('cal-month-year-title');
-  const daysBodyEl = document.getElementById('cal-days-body');
-  if (!titleEl || !daysBodyEl) return;
-
-  // Set Month Title
-  titleEl.textContent = `${currentCalYear}년 ${currentCalMonth + 1}월`;
-
-  daysBodyEl.innerHTML = '';
-
-  const firstDayIndex = new Date(currentCalYear, currentCalMonth, 1).getDay(); // 0 = Sun
-  const lastDate = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
-  const prevLastDate = new Date(currentCalYear, currentCalMonth, 0).getDate();
-
-  const todayStr = getTodayDateString();
-
-  // 1. Previous Month Days Padding
-  for (let x = firstDayIndex; x > 0; x--) {
-    const prevDate = prevLastDate - x + 1;
-    const cell = document.createElement('div');
-    cell.className = 'cal-day-cell other-month';
-    cell.innerHTML = `<span class="cal-day-num">${prevDate}</span>`;
-    daysBodyEl.appendChild(cell);
-  }
-
-  // 2. Current Month Days
-  for (let i = 1; i <= lastDate; i++) {
-    const cellDateStr = `${currentCalYear}-${String(currentCalMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-    const isToday = (cellDateStr === todayStr);
 
 function openDayDetailForCell(dateStr) {
   if (!isGCalSignedIn()) {
