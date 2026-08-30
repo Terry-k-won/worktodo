@@ -1766,3 +1766,314 @@ async function handleDayDetailDelete(eventId) {
   }
 }
 
+/* ==========================================================================
+   Dr.NAEO PDF Report Generator
+   ========================================================================== */
+
+function openPdfReportModal() {
+  const modal = document.getElementById('modal-pdf-report');
+  if (!modal) return;
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const cycleInput = document.getElementById('report-cycle-name');
+  if (cycleInput && !cycleInput.value) {
+    cycleInput.value = `${year}년 ${month}월 4주차 마케팅 리포트`;
+  }
+
+  loadAppDataToReportTable();
+  modal.classList.add('active');
+}
+
+function closePdfReportModal() {
+  const modal = document.getElementById('modal-pdf-report');
+  if (modal) modal.classList.remove('active');
+}
+
+function loadAppDataToReportTable() {
+  const tbody = document.getElementById('report-table-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  const items = appData.items.filter(i => i && i.status !== 'deleted');
+
+  if (items.length === 0) {
+    addReportTableRow({ keyword: '강남성형외과', type: '블로그포스팅', date: getTodayDateString(), url: 'https://blog.naver.com/sample', result: '스마트블럭 1위' });
+    addReportTableRow({ keyword: '지방흡입후기', type: '지식iN답변', date: getTodayDateString(), url: 'https://kin.naver.com/sample', result: '상위 노출' });
+  } else {
+    items.forEach(item => {
+      const categoryName = CATEGORY_NAMES[item.category] || item.category || '기타';
+      const date = item.dueDate || (item.createdAt ? item.createdAt.substring(0, 10) : getTodayDateString());
+      const resultText = item.note || (item.status === 'completed' ? '발행 완료 (상위 노출)' : '발행 및 검수 완료');
+      
+      addReportTableRow({
+        keyword: item.content || '주요 마케팅 키워드',
+        type: categoryName,
+        date: date,
+        url: item.link || '',
+        result: resultText
+      });
+    });
+  }
+
+  updateReportItemCount();
+}
+
+function addReportTableRow(data = {}) {
+  const tbody = document.getElementById('report-table-body');
+  if (!tbody) return;
+
+  const tr = document.createElement('tr');
+  tr.style.borderBottom = '1px solid #e2e8f0';
+  
+  tr.innerHTML = `
+    <td style="padding: 6px 8px;"><input type="text" class="form-control report-kw" value="${escapeHtml(data.keyword || '')}" placeholder="키워드 입력" style="font-size:0.82rem; padding:6px 8px;" /></td>
+    <td style="padding: 6px 8px;"><input type="text" class="form-control report-type" value="${escapeHtml(data.type || '블로그포스팅')}" placeholder="종류 (예: 블로그)" style="font-size:0.82rem; padding:6px 8px;" /></td>
+    <td style="padding: 6px 8px;"><input type="date" class="form-control report-date" value="${data.date || getTodayDateString()}" style="font-size:0.82rem; padding:6px 8px;" /></td>
+    <td style="padding: 6px 8px;"><input type="url" class="form-control report-url" value="${escapeHtml(data.url || '')}" placeholder="https://..." style="font-size:0.82rem; padding:6px 8px;" /></td>
+    <td style="padding: 6px 8px;"><input type="text" class="form-control report-result" value="${escapeHtml(data.result || '상위 노출')}" placeholder="성과 / 순위" style="font-size:0.82rem; padding:6px 8px;" /></td>
+    <td style="padding: 6px 4px; text-align: center;">
+      <button type="button" onclick="this.closest('tr').remove(); updateReportItemCount();" style="background:none; border:none; color:#dc2626; cursor:pointer;" title="삭제"><i class="ri-delete-bin-line"></i></button>
+    </td>
+  `;
+
+  tbody.appendChild(tr);
+  updateReportItemCount();
+}
+
+function updateReportItemCount() {
+  const rows = document.querySelectorAll('#report-table-body tr');
+  const countEl = document.getElementById('report-item-count');
+  if (countEl) countEl.textContent = rows.length.toString();
+}
+
+function getReportData() {
+  const hospitalName = document.getElementById('report-hospital-name')?.value.trim() || '닥터내오 의원';
+  const cycleName = document.getElementById('report-cycle-name')?.value.trim() || '2026년 8월 마케팅 리포트';
+  const targetQuota = parseInt(document.getElementById('report-target-quota')?.value || '0', 10);
+  const summaryText = document.getElementById('report-summary-text')?.value.trim() || '주요 키워드별 상위 노출 달성 및 목표 발행량 정상 완료.';
+
+  const rows = document.querySelectorAll('#report-table-body tr');
+  const tableData = [];
+
+  rows.forEach((tr, index) => {
+    const kw = tr.querySelector('.report-kw')?.value.trim() || '';
+    const type = tr.querySelector('.report-type')?.value.trim() || '';
+    const date = tr.querySelector('.report-date')?.value || '';
+    const url = tr.querySelector('.report-url')?.value.trim() || '';
+    const result = tr.querySelector('.report-result')?.value.trim() || '';
+
+    if (kw || url) {
+      tableData.push({ idx: index + 1, kw, type, date, url, result });
+    }
+  });
+
+  const publishedCount = tableData.length;
+  const achievementRate = targetQuota > 0 ? Math.round((publishedCount / targetQuota) * 100) : 100;
+
+  const keywordSummaryList = tableData.map(item => {
+    return `<span style="display:inline-block; background:#e8f5e9; color:#0e8a57; font-weight:700; padding:4px 10px; border-radius:12px; font-size:12px; border:1px solid #a3e635; margin:3px;">🏷️ ${escapeHtml(item.kw)} (${escapeHtml(item.result || '노출완료')})</span>`;
+  }).join(' ');
+
+  return {
+    hospitalName,
+    cycleName,
+    targetQuota,
+    publishedCount,
+    achievementRate,
+    summaryText,
+    keywordSummaryList,
+    tableData,
+    createdDate: new Date().toLocaleDateString('ko-KR')
+  };
+}
+
+function buildReportHtml(data) {
+  const tableRowsHtml = data.tableData.map(row => `
+    <tr style="border-bottom: 1px solid #e2e8f0;">
+      <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: #64748b; font-size: 12px;">${row.idx}</td>
+      <td style="padding: 10px 12px; font-weight: 700; color: #0f172a; font-size: 13px;">${escapeHtml(row.kw)}</td>
+      <td style="padding: 10px 12px; font-size: 12px; color: #334155;"><span style="background:#f1f5f9; padding:3px 8px; border-radius:6px; font-weight:600;">${escapeHtml(row.type)}</span></td>
+      <td style="padding: 10px 12px; font-size: 12px; color: #475569;">${escapeHtml(row.date)}</td>
+      <td style="padding: 10px 12px; font-size: 12px; word-break: break-all;">
+        ${row.url ? `<a href="${escapeHtml(row.url)}" target="_blank" style="color:#0284c7; text-decoration:none; font-weight:600;">${escapeHtml(row.url.substring(0, 35))}${row.url.length > 35 ? '...' : ''}</a>` : '-'}
+      </td>
+      <td style="padding: 10px 12px; font-size: 12px;">
+        <span style="background:#dcfce7; color:#15803d; font-weight:700; padding:3px 8px; border-radius:6px; border:1px solid #86efac;">${escapeHtml(row.result || '상위 노출')}</span>
+      </td>
+    </tr>
+  `).join('');
+
+  return `
+    <div id="drnaeo-pdf-document" style="font-family:'Pretendard Variable',Pretendard,sans-serif; width: 100%; max-width: 800px; margin: 0 auto; background: #ffffff; padding: 40px; color: #1e293b; box-sizing: border-box;">
+      
+      <!-- Report Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #0E8A57; padding-bottom: 20px; margin-bottom: 28px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <svg viewBox="0 0 24 24" width="44" height="44" style="flex-shrink:0;">
+            <defs>
+              <path id="tri-rep" d="M12 2.2c1.5 0 2.7.8 3.5 2.2l4.8 8.3c.8 1.4.9 2.9.1 4.2-.8 1.3-2.1 2-3.7 2H7.3c-1.6 0-2.9-.7-3.7-2-.8-1.3-.7-2.8.1-4.2l4.8-8.3C9.3 3 10.5 2.2 12 2.2z"/>
+              <clipPath id="tc-rep"><use href="#tri-rep"/></clipPath>
+              <radialGradient id="wg1-rep" cx="30%" cy="24%" r="75%"><stop offset="0%" stop-color="#37D67F"/><stop offset="100%" stop-color="#37D67F" stop-opacity="0"/></radialGradient>
+              <radialGradient id="wg2-rep" cx="76%" cy="30%" r="80%"><stop offset="0%" stop-color="#0FB864"/><stop offset="100%" stop-color="#0FB864" stop-opacity="0"/></radialGradient>
+              <radialGradient id="wg3-rep" cx="28%" cy="80%" r="85%"><stop offset="0%" stop-color="#0E8A57"/><stop offset="100%" stop-color="#0E8A57" stop-opacity="0"/></radialGradient>
+              <radialGradient id="wg4-rep" cx="80%" cy="78%" r="85%"><stop offset="0%" stop-color="#0B6E43"/><stop offset="100%" stop-color="#0B6E43" stop-opacity="0"/></radialGradient>
+              <g id="lg-medigo-rep">
+                <g clip-path="url(#tc-rep)">
+                  <rect width="24" height="24" fill="#12A35C"/>
+                  <rect width="24" height="24" fill="url(#wg4-rep)"/>
+                  <rect width="24" height="24" fill="url(#wg3-rep)"/>
+                  <rect width="24" height="24" fill="url(#wg2-rep)"/>
+                  <rect width="24" height="24" fill="url(#wg1-rep)"/>
+                  <circle cx="8" cy="9" r="4.5" fill="#37D67F" opacity=".28"/>
+                  <circle cx="16.5" cy="15" r="5" fill="#0B6E43" opacity=".3"/>
+                  <circle cx="13" cy="7.5" r="3" fill="#5FE49A" opacity=".22"/>
+                </g>
+              </g>
+            </defs>
+            <use href="#lg-medigo-rep"/>
+          </svg>
+          <div>
+            <div style="font-size: 22px; font-weight: 800; color: #0b132a; letter-spacing: -0.5px;">Dr.<span style="color:#0E8A57;">NAEO</span></div>
+            <div style="font-size: 11px; color: #64748b; font-weight: 600;">의사가 직접 쓰는 네이버 마케팅</div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 20px; font-weight: 800; color: #0E8A57;">마케팅 성과보고서</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600;">작성일자: ${data.createdDate}</div>
+        </div>
+      </div>
+
+      <!-- Report Metadata Overview Cards -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px;">
+          <div style="background: #ffffff; padding: 14px; border-radius: 10px; border: 1px solid #cbd5e1;">
+            <div style="font-size: 11px; color: #64748b; font-weight: 700; margin-bottom: 4px;">🏥 대상 병원</div>
+            <div style="font-size: 15px; font-weight: 800; color: #0f172a;">${escapeHtml(data.hospitalName)}</div>
+          </div>
+          <div style="background: #ffffff; padding: 14px; border-radius: 10px; border: 1px solid #cbd5e1;">
+            <div style="font-size: 11px; color: #64748b; font-weight: 700; margin-bottom: 4px;">📅 마케팅 주기</div>
+            <div style="font-size: 14px; font-weight: 800; color: #0f172a;">${escapeHtml(data.cycleName)}</div>
+          </div>
+          <div style="background: #ffffff; padding: 14px; border-radius: 10px; border: 1px solid #cbd5e1;">
+            <div style="font-size: 11px; color: #64748b; font-weight: 700; margin-bottom: 4px;">🎯 발행 현황 (할당량)</div>
+            <div style="font-size: 15px; font-weight: 800; color: #0E8A57;">${data.publishedCount} / ${data.targetQuota}건</div>
+          </div>
+          <div style="background: #ffffff; padding: 14px; border-radius: 10px; border: 1px solid #cbd5e1;">
+            <div style="font-size: 11px; color: #64748b; font-weight: 700; margin-bottom: 4px;">📊 목표 달성률</div>
+            <div style="font-size: 15px; font-weight: 800; color: #0284c7;">${data.achievementRate}% 달성</div>
+          </div>
+        </div>
+
+        <!-- Summary & Keyword Badges -->
+        <div style="background: #ffffff; padding: 14px; border-radius: 10px; border: 1px solid #cbd5e1;">
+          <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">💡 이번 주기 종합 성과 요약</div>
+          <div style="font-size: 13px; color: #334155; line-height: 1.6; margin-bottom: 10px;">${escapeHtml(data.summaryText)}</div>
+          <div style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px;">🏷️ 주요 키워드별 성과 목록</div>
+          <div>${data.keywordSummaryList}</div>
+        </div>
+      </div>
+
+      <!-- Detailed Table -->
+      <div style="margin-bottom: 28px;">
+        <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+          <span>📋 세부 발행 및 성과 내역</span>
+          <span style="font-size: 12px; color: #64748b; font-weight: 600;">(총 ${data.tableData.length}건)</span>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+          <thead>
+            <tr style="background: #0e1015; color: #ffffff; font-size: 12px;">
+              <th style="padding: 10px 12px; width: 6%; text-align: center;">NO</th>
+              <th style="padding: 10px 12px; width: 26%; text-align: left;">키워드 (Keyword)</th>
+              <th style="padding: 10px 12px; width: 16%; text-align: left;">항목종류</th>
+              <th style="padding: 10px 12px; width: 14%; text-align: left;">발행일</th>
+              <th style="padding: 10px 12px; width: 23%; text-align: left;">URL</th>
+              <th style="padding: 10px 12px; width: 15%; text-align: left;">성과 / 순위</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Report Footer -->
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #94a3b8;">
+        <div><b>Dr.NAEO</b> — 의사가 직접 쓰는 네이버 마케팅</div>
+        <div>본 보고서는 Dr.NAEO 자동화 리포트 시스템에 의해 생성되었습니다.</div>
+      </div>
+    </div>
+  `;
+}
+
+function previewPdfReport() {
+  const data = getReportData();
+  const reportHtml = buildReportHtml(data);
+  
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Dr.NAEO 성과보고서 미리보기 - ${escapeHtml(data.hospitalName)}</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+      <style>
+        body { background: #64748b; margin: 0; padding: 40px 10px; font-family: 'Pretendard Variable', sans-serif; }
+        @media print {
+          body { background: #fff; padding: 0; }
+          #btn-print-bar { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div id="btn-print-bar" style="max-width: 800px; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 12px 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <div style="font-weight: 700; color: #0f172a;">📄 Dr.NAEO 마케팅 성과보고서 미리보기</div>
+        <button onclick="window.print()" style="background: #0E8A57; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer;">🖨️ PDF로 인쇄 / 저장</button>
+      </div>
+      ${reportHtml}
+    </body>
+    </html>
+  `);
+  win.document.close();
+}
+
+async function generateAndDownloadPdfReport() {
+  const data = getReportData();
+  const reportHtml = buildReportHtml(data);
+
+  showToast('Dr.NAEO PDF 보고서를 생성 중입니다...', 'info');
+
+  const element = document.createElement('div');
+  element.innerHTML = reportHtml;
+  document.body.appendChild(element);
+
+  const filename = `Dr.NAEO_성과보고서_${data.hospitalName.replace(/\s+/g, '_')}_${new Date().toISOString().substring(0, 10)}.pdf`;
+
+  if (typeof html2pdf !== 'undefined') {
+    const opt = {
+      margin:       [10, 10, 10, 10],
+      filename:     filename,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+      await html2pdf().set(opt).from(element.firstElementChild).save();
+      showToast(`'${filename}' PDF 보고서 다운로드 완료!`, 'success');
+    } catch (err) {
+      console.error('html2pdf error:', err);
+      previewPdfReport();
+    } finally {
+      element.remove();
+    }
+  } else {
+    element.remove();
+    previewPdfReport();
+  }
+}
+
+
