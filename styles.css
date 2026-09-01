@@ -192,29 +192,6 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-.btn-pdf-action {
-  background: #0E8A57;
-  color: #ffffff;
-  border: 1px solid #0B6E43;
-  padding: 8px 14px;
-  border-radius: var(--r-sm);
-  font-size: 0.84rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: var(--t-fast);
-  font-family: inherit;
-  box-shadow: 0 2px 6px rgba(14, 138, 87, 0.25);
-}
-
-.btn-pdf-action:hover {
-  background: #12A35C;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(14, 138, 87, 0.4);
-}
-
 .badge-btn .badge {
   position: absolute;
   top: -5px;
